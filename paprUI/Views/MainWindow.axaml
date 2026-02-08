@@ -1,0 +1,227 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:paprUI.ViewModels"
+        xmlns:m="using:paprUI.Models"
+        xmlns:v="using:paprUI.Views"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
+        x:Class="paprUI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="paprUI - M5Paper Canvas Builder"
+        Width="1100" Height="700"
+        Background="#f0f0f0">
+
+    <Window.Resources>
+        <v:FillConverter x:Key="FillConverter"/>
+        <v:FontSizeConverter x:Key="FontSizeConverter"/>
+        <v:LinePointConverter x:Key="LinePointConverter"/>
+        <v:DiameterConverter x:Key="DiameterConverter"/>
+        <v:CenterToTopLeftConverter x:Key="CenterToTopLeftConverter"/>
+    </Window.Resources>
+
+    <Grid RowDefinitions="Auto, *, Auto">
+        <!-- Toolbar -->
+        <Border Grid.Row="0" Background="#2b2b2b" Padding="10">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <RadioButton Content="Select" Command="{Binding SelectToolCommand}" CommandParameter="Select" IsChecked="True" Theme="{StaticResource {x:Type ToggleButton}}"/>
+                <RadioButton Content="Text" Command="{Binding SelectToolCommand}" CommandParameter="Text" Theme="{StaticResource {x:Type ToggleButton}}"/>
+                <RadioButton Content="Line" Command="{Binding SelectToolCommand}" CommandParameter="Line" Theme="{StaticResource {x:Type ToggleButton}}"/>
+                <RadioButton Content="Rect" Command="{Binding SelectToolCommand}" CommandParameter="Rectangle" Theme="{StaticResource {x:Type ToggleButton}}"/>
+                <RadioButton Content="Circle" Command="{Binding SelectToolCommand}" CommandParameter="Circle" Theme="{StaticResource {x:Type ToggleButton}}"/>
+                
+                <Separator Width="1" Height="20" Background="#666" Margin="10,0"/>
+                
+                <Button Content="New" Command="{Binding NewCanvasCommand}"/>
+                <Button Content="Save" Command="{Binding SaveCanvasCommand}"/>
+                <Button Content="Upload" Command="{Binding UploadCanvasCommand}"/>
+                <Button Content="Delete" Command="{Binding DeleteCanvasCommand}" Foreground="#ff5555"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1" ColumnDefinitions="250, *, 250">
+            <!-- Sidebar (Canvases) -->
+            <Border Grid.Column="0" Background="#f8f8f8" BorderBrush="#ddd" BorderThickness="0,0,1,0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Saved Canvases" FontWeight="SemiBold" Margin="15,15,15,5" FontSize="16"/>
+                    <ListBox ItemsSource="{Binding SavedCanvases}" SelectedItem="{Binding CurrentCanvas}" Margin="5">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}" Padding="5"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <!-- Drawing Area -->
+            <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="#e0e0e0">
+                <Panel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40">
+                    <Border Width="960" Height="540" Background="White" BoxShadow="0 10 20 0 #20000000">
+                        <Canvas x:Name="DrawingCanvas" 
+                                Width="960" Height="540" 
+                                Background="White"
+                                PointerPressed="OnPointerPressed"
+                                PointerMoved="OnPointerMoved"
+                                PointerReleased="OnPointerReleased">
+                            
+                            <ItemsControl ItemsSource="{Binding CurrentCanvas.Elements}" Classes="DrawingItemsControl">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <Canvas Width="960" Height="540"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.Styles>
+                                    <Style Selector="ItemsControl.DrawingItemsControl > ContentPresenter" x:DataType="m:DrawingCommand">
+                                        <Setter Property="Canvas.Left" Value="{Binding CanvasX}"/>
+                                        <Setter Property="Canvas.Top" Value="{Binding CanvasY}"/>
+                                    </Style>
+                                </ItemsControl.Styles>
+                                <ItemsControl.DataTemplates>
+                                    <DataTemplate DataType="{x:Type m:TextCommand}">
+                                        <Panel>
+                                            <TextBlock Text="{Binding Content}" 
+                                                       FontSize="{Binding Size, Converter={StaticResource FontSizeConverter}}"
+                                                       Foreground="Black"/>
+                                            <Rectangle Stroke="Blue" StrokeThickness="1" Margin="-2" IsVisible="{Binding IsSelected}"/>
+                                        </Panel>
+                                    </DataTemplate>
+                                    <DataTemplate DataType="{x:Type m:RectCommand}">
+                                        <Panel>
+                                            <Rectangle Width="{Binding W}" 
+                                                       Height="{Binding H}"
+                                                       Fill="{Binding Fill, Converter={StaticResource FillConverter}}"
+                                                       Stroke="Black"
+                                                       StrokeThickness="2"/>
+                                            <Rectangle Width="{Binding W}" Height="{Binding H}" Stroke="Blue" StrokeThickness="1" Margin="-2" IsVisible="{Binding IsSelected}"/>
+                                        </Panel>
+                                    </DataTemplate>
+                                    <DataTemplate DataType="{x:Type m:LineCommand}">
+                                        <Panel>
+                                            <Line Stroke="Black" StrokeThickness="2">
+                                                <Line.StartPoint>
+                                                    <MultiBinding Converter="{StaticResource LinePointConverter}">
+                                                        <Binding Path="X1"/>
+                                                        <Binding Path="Y1"/>
+                                                    </MultiBinding>
+                                                </Line.StartPoint>
+                                                <Line.EndPoint>
+                                                    <MultiBinding Converter="{StaticResource LinePointConverter}">
+                                                        <Binding Path="X2"/>
+                                                        <Binding Path="Y2"/>
+                                                    </MultiBinding>
+                                                </Line.EndPoint>
+                                            </Line>
+                                            <Line Stroke="Blue" StrokeThickness="1" StrokeDashArray="2,2" IsVisible="{Binding IsSelected}">
+                                                <Line.StartPoint>
+                                                    <MultiBinding Converter="{StaticResource LinePointConverter}">
+                                                        <Binding Path="X1"/>
+                                                        <Binding Path="Y1"/>
+                                                    </MultiBinding>
+                                                </Line.StartPoint>
+                                                <Line.EndPoint>
+                                                    <MultiBinding Converter="{StaticResource LinePointConverter}">
+                                                        <Binding Path="X2"/>
+                                                        <Binding Path="Y2"/>
+                                                    </MultiBinding>
+                                                </Line.EndPoint>
+                                            </Line>
+                                        </Panel>
+                                    </DataTemplate>
+                                    <DataTemplate DataType="{x:Type m:CircleCommand}">
+                                        <Panel>
+                                            <Ellipse Width="{Binding R, Converter={StaticResource DiameterConverter}}"
+                                                     Height="{Binding R, Converter={StaticResource DiameterConverter}}"
+                                                     Fill="{Binding Fill, Converter={StaticResource FillConverter}}"
+                                                     Stroke="Black"
+                                                     StrokeThickness="2"/>
+                                            <Ellipse Width="{Binding R, Converter={StaticResource DiameterConverter}}"
+                                                     Height="{Binding R, Converter={StaticResource DiameterConverter}}"
+                                                     Stroke="Blue" StrokeThickness="1" Margin="-2" IsVisible="{Binding IsSelected}"/>
+                                        </Panel>
+                                    </DataTemplate>
+                                </ItemsControl.DataTemplates>
+                            </ItemsControl>
+                            
+                            <!-- Drawing Guide (840x520) -->
+                            <Rectangle Width="960" Height="540" 
+                                       Canvas.Left="0" Canvas.Top="0"
+                                       Stroke="#eeeeee" StrokeThickness="1" StrokeDashArray="4,2"
+                                       IsHitTestVisible="False"/>
+                        </Canvas>
+                    </Border>
+                </Panel>
+            </ScrollViewer>
+
+            <!-- Property Editor -->
+            <Border Grid.Column="2" Background="#f8f8f8" BorderBrush="#ddd" BorderThickness="1,0,0,0" IsVisible="{Binding SelectedElement, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <ScrollViewer>
+                    <StackPanel Margin="15" Spacing="10">
+                        <TextBlock Text="Properties" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,10"/>
+                        
+                        <ContentControl Content="{Binding SelectedElement}">
+                            <ContentControl.DataTemplates>
+                                <DataTemplate DataType="m:TextCommand">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Text="Text Content:"/>
+                                        <TextBox Text="{Binding Content}"/>
+                                        
+                                        <TextBlock Text="Font Size:" Margin="0,10,0,0"/>
+                                        <NumericUpDown Value="{Binding Size}" Minimum="1" Maximum="10"/>
+
+                                        <TextBlock Text="X:"/>
+                                        <NumericUpDown Value="{Binding X}"/>
+                                        <TextBlock Text="Y:"/>
+                                        <NumericUpDown Value="{Binding Y}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                                <DataTemplate DataType="m:RectCommand">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Text="X:"/>
+                                        <NumericUpDown Value="{Binding X}"/>
+                                        <TextBlock Text="Y:"/>
+                                        <NumericUpDown Value="{Binding Y}"/>
+                                        <TextBlock Text="Width:"/>
+                                        <NumericUpDown Value="{Binding W}"/>
+                                        <TextBlock Text="Height:"/>
+                                        <NumericUpDown Value="{Binding H}"/>
+                                        <CheckBox Content="Fill" IsChecked="{Binding Fill}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                                <DataTemplate DataType="m:CircleCommand">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Text="X:"/>
+                                        <NumericUpDown Value="{Binding X}"/>
+                                        <TextBlock Text="Y:"/>
+                                        <NumericUpDown Value="{Binding Y}"/>
+                                        <TextBlock Text="Radius:"/>
+                                        <NumericUpDown Value="{Binding R}"/>
+                                        <CheckBox Content="Fill" IsChecked="{Binding Fill}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                                <DataTemplate DataType="m:LineCommand">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Text="X1:"/>
+                                        <NumericUpDown Value="{Binding X1}"/>
+                                        <TextBlock Text="Y1:"/>
+                                        <NumericUpDown Value="{Binding Y1}"/>
+                                        <TextBlock Text="X2:"/>
+                                        <NumericUpDown Value="{Binding X2}"/>
+                                        <TextBlock Text="Y2:"/>
+                                        <NumericUpDown Value="{Binding Y2}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ContentControl.DataTemplates>
+                        </ContentControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" Background="#2b2b2b" Padding="8,4">
+            <TextBlock Text="{Binding StatusText}" Foreground="#ccc" FontSize="12"/>
+        </Border>
+    </Grid>
+
+</Window>
