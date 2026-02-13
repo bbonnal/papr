@@ -53,6 +53,50 @@
                                                   IsChecked="{Binding IsCircleToolActive, Mode=OneWay}"
                                                   Command="{Binding SelectToolCommand}"
                                                   CommandParameter="Circle" />
+                    <ruiRibbon:RibbonButton Header="Point"
+                                            IconData="{pia:IconGeometry Icon=dot_outline}"
+                                            Command="{Binding SelectToolCommand}"
+                                            CommandParameter="Point" />
+                    <ruiRibbon:RibbonButton Header="Arc"
+                                            IconData="{pia:IconGeometry Icon=circles_three_plus}"
+                                            Command="{Binding SelectToolCommand}"
+                                            CommandParameter="Arc" />
+                    <ruiRibbon:RibbonButton Header="Arrow"
+                                            IconData="{pia:IconGeometry Icon=line_segment}"
+                                            Command="{Binding SelectToolCommand}"
+                                            CommandParameter="Arrow" />
+                    <ruiRibbon:RibbonButton Header="TextBox"
+                                            IconData="{pia:IconGeometry Icon=rectangle}"
+                                            Command="{Binding SelectToolCommand}"
+                                            CommandParameter="TextBox" />
+                    <ruiRibbon:RibbonButton Header="Multiline"
+                                            IconData="{pia:IconGeometry Icon=text_t}"
+                                            Command="{Binding SelectToolCommand}"
+                                            CommandParameter="MultilineText" />
+                    <ruiRibbon:RibbonButton Header="Icon"
+                                            IconData="{pia:IconGeometry Icon=circle}"
+                                            Command="{Binding SelectToolCommand}"
+                                            CommandParameter="Icon" />
+                    <ruiRibbon:RibbonButton Header="Image"
+                                            IconData="{pia:IconGeometry Icon=image}"
+                                            Command="{Binding SelectToolCommand}"
+                                            CommandParameter="Image" />
+                    <ruiRibbon:RibbonButton Header="Centerline"
+                                            IconData="{pia:IconGeometry Icon=rectangle}"
+                                            Command="{Binding SelectToolCommand}"
+                                            CommandParameter="CenterlineRectangle" />
+                    <ruiRibbon:RibbonButton Header="Referential"
+                                            IconData="{pia:IconGeometry Icon=line_segment}"
+                                            Command="{Binding SelectToolCommand}"
+                                            CommandParameter="Referential" />
+                    <ruiRibbon:RibbonButton Header="Dimension"
+                                            IconData="{pia:IconGeometry Icon=line_segment}"
+                                            Command="{Binding SelectToolCommand}"
+                                            CommandParameter="Dimension" />
+                    <ruiRibbon:RibbonButton Header="Angle Dim"
+                                            IconData="{pia:IconGeometry Icon=circle}"
+                                            Command="{Binding SelectToolCommand}"
+                                            CommandParameter="AngleDimension" />
                 </ruiRibbon:RibbonGroup>
 
                 <ruiRibbon:RibbonGroup Header="Device">

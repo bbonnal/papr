@@ -18,19 +18,11 @@
 
     <Panel>
         <DockPanel>
-            <StackPanel DockPanel.Dock="Top"
-                        Orientation="Horizontal"
-                        HorizontalAlignment="Right"
-                        Margin="8">
-                <Button Content="Toggle Theme"
-                        Command="{Binding ToggleThemeCommand}" />
-            </StackPanel>
 
             <nav:NavigationControl DockPanel.Dock="Left"
                                    Items="{Binding Navigation.Items}"
                                    FooterItems="{Binding Navigation.FooterItems}"
-                                   SelectedItem="{Binding Navigation.SelectedItem}"
-                                   Logo="{Binding Logo}" />
+                                   SelectedItem="{Binding Navigation.SelectedItem}" />
             <ContentControl Content="{Binding Navigation.CurrentPage}" />
         </DockPanel>
 

@@ -10,6 +10,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using paprUI.Models;
 using rUI.Avalonia.Desktop;
+using rUI.Drawing.Core.Scene;
 
 namespace paprUI.ViewModels;
 
@@ -18,6 +19,7 @@ public partial class LibraryPageViewModel : ViewModelBase, INavigationViewModel
     private readonly LibrarySettings _librarySettings;
     private readonly DrawPageViewModel _drawPageViewModel;
     private readonly INavigationService _navigation;
+    private readonly ISceneSerializer _sceneSerializer = new JsonSceneSerializer();
 
     public LibraryPageViewModel(
         LibrarySettings librarySettings,
@@ -89,9 +91,10 @@ public partial class LibraryPageViewModel : ViewModelBase, INavigationViewModel
                 {
                     var json = File.ReadAllText(file);
                     _ = JsonDocument.Parse(json);
-
-                    var payload = JsonSerializer.Deserialize<M5PaperPayload>(json);
-                    var commands = payload?.commands ?? [];
+                    var scene = TryDeserializeScene(json);
+                    var commands = scene is not null
+                        ? ToPreviewCommands(scene)
+                        : (JsonSerializer.Deserialize<M5PaperPayload>(json)?.commands ?? []);
 
                     loadedTiles.Add(new LibraryCanvasTileViewModel
                     {
@@ -99,6 +102,7 @@ public partial class LibraryPageViewModel : ViewModelBase, INavigationViewModel
                         FullPath = file,
                         ModifiedAt = File.GetLastWriteTime(file),
                         Commands = commands,
+                        Scene = scene,
                         PreviewAvailable = commands.Count > 0
                     });
                 }
@@ -127,8 +131,85 @@ public partial class LibraryPageViewModel : ViewModelBase, INavigationViewModel
             return;
 
         var title = Path.GetFileNameWithoutExtension(SelectedTile.FileName);
-        _drawPageViewModel.AddCanvasFromCommands(title, SelectedTile.Commands);
+        if (SelectedTile.Scene is not null)
+            _drawPageViewModel.AddCanvasFromScene(title, SelectedTile.Scene);
+        else
+            _drawPageViewModel.AddCanvasFromCommands(title, SelectedTile.Commands);
+
         await _navigation.NavigateToAsync<DrawPageViewModel>();
+    }
+
+    private SceneDocument? TryDeserializeScene(string json)
+    {
+        try
+        {
+            var scene = _sceneSerializer.Deserialize(json);
+            return scene.Shapes.Count > 0 ? scene : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static List<DrawingCommand> ToPreviewCommands(SceneDocument scene)
+    {
+        var commands = new List<DrawingCommand>();
+
+        foreach (var shape in scene.Shapes)
+        {
+            switch (shape.Kind)
+            {
+                case "Text":
+                    commands.Add(new TextCommand
+                    {
+                        X = (int)Math.Round(shape.PositionX),
+                        Y = (int)Math.Round(shape.PositionY),
+                        Content = shape.Text ?? "Text",
+                        Size = Math.Max(1, (int)Math.Round((shape.FontSize ?? 16) / 16))
+                    });
+                    break;
+                case "Line":
+                {
+                    var length = shape.Length ?? 0;
+                    var x2 = shape.PositionX + (shape.OrientationX * length);
+                    var y2 = shape.PositionY + (shape.OrientationY * length);
+                    commands.Add(new LineCommand
+                    {
+                        X1 = (int)Math.Round(shape.PositionX),
+                        Y1 = (int)Math.Round(shape.PositionY),
+                        X2 = (int)Math.Round(x2),
+                        Y2 = (int)Math.Round(y2)
+                    });
+                    break;
+                }
+                case "Rectangle":
+                {
+                    var w = shape.Width ?? 0;
+                    var h = shape.Height ?? 0;
+                    commands.Add(new RectCommand
+                    {
+                        X = (int)Math.Round(shape.PositionX - (w / 2)),
+                        Y = (int)Math.Round(shape.PositionY - (h / 2)),
+                        W = (int)Math.Round(w),
+                        H = (int)Math.Round(h),
+                        Fill = false
+                    });
+                    break;
+                }
+                case "Circle":
+                    commands.Add(new CircleCommand
+                    {
+                        X = (int)Math.Round(shape.PositionX),
+                        Y = (int)Math.Round(shape.PositionY),
+                        R = (int)Math.Round(shape.Radius ?? 0),
+                        Fill = false
+                    });
+                    break;
+            }
+        }
+
+        return commands;
     }
 }
 
@@ -151,4 +232,6 @@ public partial class LibraryCanvasTileViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isSelected;
+
+    public SceneDocument? Scene { get; set; }
 }

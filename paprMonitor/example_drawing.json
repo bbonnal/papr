@@ -1,56 +1,74 @@
 {
-  "clear": true,
-  "commands": [
+  "Version": 1,
+  "CanvasBackgroundColor": "#FFFFFFFF",
+  "ShowCanvasBoundary": true,
+  "CanvasBoundaryWidth": 960,
+  "CanvasBoundaryHeight": 540,
+  "Shapes": [
     {
-      "type": "text",
-      "x": 100,
-      "y": 100,
-      "size": 2,
-      "content": "M5Paper Canvas"
+      "Kind": "Text",
+      "Id": "s1",
+      "IsComputed": false,
+      "PositionX": 60,
+      "PositionY": 50,
+      "OrientationX": 1,
+      "OrientationY": 0,
+      "Text": "PAPR Scene Upload",
+      "FontSize": 18
     },
     {
-      "type": "line",
-      "x1": 100,
-      "y1": 160,
-      "x2": 800,
-      "y2": 160
+      "Kind": "Line",
+      "Id": "s2",
+      "IsComputed": false,
+      "PositionX": 60,
+      "PositionY": 90,
+      "OrientationX": 1,
+      "OrientationY": 0,
+      "Length": 500
     },
     {
-      "type": "rect",
-      "x": 100,
-      "y": 200,
-      "w": 300,
-      "h": 200,
-      "fill": false
+      "Kind": "Rectangle",
+      "Id": "s3",
+      "IsComputed": false,
+      "PositionX": 220,
+      "PositionY": 220,
+      "OrientationX": 1,
+      "OrientationY": 0,
+      "Width": 220,
+      "Height": 120
     },
     {
-      "type": "rect",
-      "x": 150,
-      "y": 250,
-      "w": 100,
-      "h": 100,
-      "fill": true
+      "Kind": "Circle",
+      "Id": "s4",
+      "IsComputed": false,
+      "PositionX": 620,
+      "PositionY": 240,
+      "OrientationX": 1,
+      "OrientationY": 0,
+      "Radius": 70
     },
     {
-      "type": "circle",
-      "x": 600,
-      "y": 300,
-      "r": 80,
-      "fill": false
+      "Kind": "Arc",
+      "Id": "s5",
+      "IsComputed": false,
+      "PositionX": 620,
+      "PositionY": 240,
+      "OrientationX": 1,
+      "OrientationY": 0,
+      "Radius": 95,
+      "StartAngleRad": 0,
+      "SweepAngleRad": 2.2
     },
     {
-      "type": "circle",
-      "x": 600,
-      "y": 300,
-      "r": 40,
-      "fill": true
-    },
-    {
-      "type": "text",
-      "x": 100,
-      "y": 500,
-      "size": 1,
-      "content": "This is a demonstration of JSON-based drawing."
+      "Kind": "Arrow",
+      "Id": "s6",
+      "IsComputed": false,
+      "PositionX": 100,
+      "PositionY": 420,
+      "OrientationX": 1,
+      "OrientationY": -0.2,
+      "Length": 220,
+      "HeadLength": 18
     }
   ]
 }

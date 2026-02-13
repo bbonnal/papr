@@ -1,6 +1,5 @@
 using System;
 using System.IO.Ports;
-using System.Text.Json;
 using System.Threading.Tasks;
 using paprUI.Models;
 
@@ -39,22 +38,27 @@ public class SerialService : IDisposable
         }
     }
 
-    public async Task UploadToM5Paper(M5PaperPayload payload)
+    public async Task UploadRawJsonAsync(string json)
     {
         if (_port == null || !_port.IsOpen)
         {
             throw new InvalidOperationException("Serial port is not open.");
         }
 
-        var options = new JsonSerializerOptions { WriteIndented = false };
-        var json = JsonSerializer.Serialize(payload, options);
-        
-        _port.WriteLine(json);
+        // Serial receiver reads line-by-line; force a single-line payload.
+        var singleLineJson = json.Replace("\r", string.Empty).Replace("\n", string.Empty);
+        _port.WriteLine(singleLineJson);
         await Task.Delay(500);
         _port.WriteLine("");
         
         // Give it a moment to send
         await Task.Delay(100);
+    }
+
+    public Task UploadToM5Paper(M5PaperPayload payload)
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(payload);
+        return UploadRawJsonAsync(json);
     }
 
     public static string[] GetAvailablePorts()

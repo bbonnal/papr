@@ -14,6 +14,7 @@ using paprUI.Models;
 using rUI.Avalonia.Desktop.Services;
 using rUI.Drawing.Core;
 using rUI.Drawing.Core.Shapes;
+using rUI.Drawing.Core.Scene;
 using AvaloniaPoint = Avalonia.Point;
 using AvaloniaVector = Avalonia.Vector;
 using FlowCircle = Flowxel.Core.Geometry.Shapes.Circle;
@@ -28,6 +29,7 @@ public partial class DrawPageViewModel : ViewModelBase
 {
     private readonly SerialService _serialService;
     private readonly LibrarySettings _librarySettings;
+    private readonly ISceneSerializer _sceneSerializer = new JsonSceneSerializer();
     private int _nextCanvasNumber = 1;
 
     public DrawPageViewModel(
@@ -109,6 +111,29 @@ public partial class DrawPageViewModel : ViewModelBase
         return canvas;
     }
 
+    public CanvasDocumentViewModel AddCanvasFromScene(string title, SceneDocument scene)
+    {
+        var canvas = AddCanvas(title);
+        var loaded = SceneDocumentMapper.FromDocument(scene);
+
+        foreach (var shape in loaded.Shapes)
+            canvas.Shapes.Add(shape);
+
+        foreach (var id in loaded.ComputedShapeIds)
+            canvas.ComputedShapeIds.Add(id);
+
+        canvas.ShowCanvasBoundary = scene.ShowCanvasBoundary;
+        canvas.CanvasBoundaryWidth = scene.CanvasBoundaryWidth;
+        canvas.CanvasBoundaryHeight = scene.CanvasBoundaryHeight;
+
+        if (Color.TryParse(scene.CanvasBackgroundColor, out var color))
+            canvas.CanvasBackgroundBrush = new SolidColorBrush(color);
+
+        FocusedCanvas = canvas;
+        OnPropertyChanged(nameof(StatusText));
+        return canvas;
+    }
+
     public void FocusCanvas(Guid canvasId)
     {
         var canvas = Canvases.FirstOrDefault(x => x.Id == canvasId);
@@ -159,24 +184,23 @@ public partial class DrawPageViewModel : ViewModelBase
         try
         {
             _librarySettings.EnsureLibraryDirectory();
-
-            var commands = FocusedCanvas.Shapes
-                .Select(ToDrawingCommand)
-                .Where(command => command is not null)
-                .Cast<DrawingCommand>()
-                .ToList();
-
-            var payload = new M5PaperPayload
+            var computed = FocusedCanvas.ComputedShapeIds.ToHashSet(StringComparer.Ordinal);
+            var baseScene = SceneDocumentMapper.ToDocument(FocusedCanvas.Shapes, computed);
+            var scene = new SceneDocument
             {
-                clear = true,
-                commands = commands
+                Version = baseScene.Version,
+                Shapes = baseScene.Shapes,
+                CanvasBackgroundColor = FocusedCanvas.CanvasBackgroundBrush is ISolidColorBrush solid ? solid.Color.ToString() : "#FFFFFFFF",
+                ShowCanvasBoundary = FocusedCanvas.ShowCanvasBoundary,
+                CanvasBoundaryWidth = FocusedCanvas.CanvasBoundaryWidth,
+                CanvasBoundaryHeight = FocusedCanvas.CanvasBoundaryHeight
             };
 
             var fileSafeName = FocusedCanvas.Title.Replace(' ', '_');
             var fileName = $"{fileSafeName}_{DateTime.Now:yyyyMMdd_HHmmss}.json";
             var outputPath = Path.Combine(_librarySettings.LibraryPath, fileName);
 
-            var json = System.Text.Json.JsonSerializer.Serialize(payload);
+            var json = _sceneSerializer.Serialize(scene);
             await File.WriteAllTextAsync(outputPath, json);
             OnPropertyChanged(nameof(StatusText));
         }
@@ -202,19 +226,19 @@ public partial class DrawPageViewModel : ViewModelBase
                 _serialService.Connect(ports[0]);
             }
 
-            var commands = FocusedCanvas.Shapes
-                .Select(ToDrawingCommand)
-                .Where(command => command is not null)
-                .Cast<DrawingCommand>()
-                .ToList();
-
-            var payload = new M5PaperPayload
+            var computed = FocusedCanvas.ComputedShapeIds.ToHashSet(StringComparer.Ordinal);
+            var baseScene = SceneDocumentMapper.ToDocument(FocusedCanvas.Shapes, computed);
+            var scene = new SceneDocument
             {
-                clear = true,
-                commands = commands
+                Version = baseScene.Version,
+                Shapes = baseScene.Shapes,
+                CanvasBackgroundColor = FocusedCanvas.CanvasBackgroundBrush is ISolidColorBrush solid ? solid.Color.ToString() : "#FFFFFFFF",
+                ShowCanvasBoundary = FocusedCanvas.ShowCanvasBoundary,
+                CanvasBoundaryWidth = FocusedCanvas.CanvasBoundaryWidth,
+                CanvasBoundaryHeight = FocusedCanvas.CanvasBoundaryHeight
             };
 
-            await _serialService.UploadToM5Paper(payload);
+            await _serialService.UploadRawJsonAsync(_sceneSerializer.Serialize(scene));
             OnPropertyChanged(nameof(StatusText));
         }
         catch
