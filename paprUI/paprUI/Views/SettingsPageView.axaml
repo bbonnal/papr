@@ -1,0 +1,47 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:paprUI.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignWidth="900"
+             d:DesignHeight="640"
+             x:Class="paprUI.Views.SettingsPageView"
+             x:DataType="vm:SettingsPageViewModel">
+
+    <Grid>
+        <Border Margin="24"
+                Padding="20"
+                CornerRadius="10"
+                BorderBrush="{DynamicResource rUIBorderSubtleBrush}"
+                BorderThickness="1"
+                Background="{DynamicResource rUISurfaceBrush}"
+                MaxWidth="760"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top">
+            <StackPanel Spacing="12">
+                <TextBlock Text="{Binding Title}"
+                           FontSize="22"
+                           FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Description}"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource rUIForegroundSecondaryBrush}" />
+
+                <TextBlock Text="Library Path" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                <TextBox Text="{Binding LibraryPath}" Watermark="Path to JSON library" />
+
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Content="Save Settings"
+                            HorizontalAlignment="Left"
+                            Command="{Binding SaveSettingsCommand}" />
+                    <Button Content="Toggle Theme"
+                            HorizontalAlignment="Left"
+                            Command="{Binding ToggleThemeCommand}" />
+                </StackPanel>
+
+                <TextBlock Text="{Binding StatusText}"
+                           Foreground="{DynamicResource rUIForegroundSecondaryBrush}" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

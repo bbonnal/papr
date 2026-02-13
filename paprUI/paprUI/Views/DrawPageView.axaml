@@ -1,0 +1,89 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:paprUI.ViewModels"
+             xmlns:ruiRibbon="using:rUI.Avalonia.Desktop.Controls.Ribbon"
+             xmlns:ruiDock="using:rUI.Avalonia.Desktop.Controls.Docking"
+             xmlns:pia="using:PhosphorIconsAvalonia.Markup"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignWidth="1320"
+             d:DesignHeight="820"
+             x:Class="paprUI.Views.DrawPageView"
+             x:DataType="vm:DrawPageViewModel">
+
+    <DockPanel>
+        <ruiRibbon:RibbonControl DockPanel.Dock="Top">
+            <ruiRibbon:RibbonTab Header="Draw">
+                <ruiRibbon:RibbonGroup Header="Canvas">
+                    <ruiRibbon:RibbonButton Header="New Canvas"
+                                            IconData="{pia:IconGeometry Icon=plus}"
+                                            Command="{Binding AddCanvasCommand}" />
+                    <ruiRibbon:RibbonButton Header="Clear Focused"
+                                            IconData="{pia:IconGeometry Icon=trash}"
+                                            Command="{Binding DeleteCanvasCommand}" />
+                    <ruiRibbon:RibbonButton Header="Reset View"
+                                            IconData="{pia:IconGeometry Icon=arrows_clockwise}"
+                                            Command="{Binding ResetFocusedViewCommand}" />
+                </ruiRibbon:RibbonGroup>
+
+                <ruiRibbon:RibbonGroup Header="Tools">
+                    <ruiRibbon:RibbonToggleButton Header="Select"
+                                                  IconData="{pia:IconGeometry Icon=cursor_click}"
+                                                  IsChecked="{Binding IsSelectToolActive, Mode=OneWay}"
+                                                  Command="{Binding SelectToolCommand}"
+                                                  CommandParameter="Select" />
+                    <ruiRibbon:RibbonToggleButton Header="Text"
+                                                  IconData="{pia:IconGeometry Icon=text_t}"
+                                                  IsChecked="{Binding IsTextToolActive, Mode=OneWay}"
+                                                  Command="{Binding SelectToolCommand}"
+                                                  CommandParameter="Text" />
+                    <ruiRibbon:RibbonToggleButton Header="Line"
+                                                  IconData="{pia:IconGeometry Icon=line_segment}"
+                                                  IsChecked="{Binding IsLineToolActive, Mode=OneWay}"
+                                                  Command="{Binding SelectToolCommand}"
+                                                  CommandParameter="Line" />
+                    <ruiRibbon:RibbonToggleButton Header="Rectangle"
+                                                  IconData="{pia:IconGeometry Icon=rectangle}"
+                                                  IsChecked="{Binding IsRectangleToolActive, Mode=OneWay}"
+                                                  Command="{Binding SelectToolCommand}"
+                                                  CommandParameter="Rectangle" />
+                    <ruiRibbon:RibbonToggleButton Header="Circle"
+                                                  IconData="{pia:IconGeometry Icon=circle}"
+                                                  IsChecked="{Binding IsCircleToolActive, Mode=OneWay}"
+                                                  Command="{Binding SelectToolCommand}"
+                                                  CommandParameter="Circle" />
+                </ruiRibbon:RibbonGroup>
+
+                <ruiRibbon:RibbonGroup Header="Device">
+                    <ruiRibbon:RibbonButton Header="Save Focused"
+                                            IconData="{pia:IconGeometry Icon=floppy_disk}"
+                                            Command="{Binding SaveCanvasCommand}" />
+                    <ruiRibbon:RibbonButton Header="Upload Focused"
+                                            IconData="{pia:IconGeometry Icon=arrow_up}"
+                                            Command="{Binding UploadCanvasCommand}" />
+                </ruiRibbon:RibbonGroup>
+            </ruiRibbon:RibbonTab>
+        </ruiRibbon:RibbonControl>
+
+        <Border Margin="16"
+                CornerRadius="10"
+                BorderBrush="{DynamicResource rUIBorderSubtleBrush}"
+                BorderThickness="1"
+                Background="{DynamicResource rUISurfaceBrush}">
+            <DockPanel LastChildFill="True">
+                <Border DockPanel.Dock="Bottom"
+                        Padding="10,8"
+                        BorderBrush="{DynamicResource rUIBorderSubtleBrush}"
+                        BorderThickness="0,1,0,0">
+                    <TextBlock Text="{Binding StatusText}"
+                               Foreground="{DynamicResource rUIForegroundSecondaryBrush}" />
+                </Border>
+
+                <ruiDock:DockingControl x:Name="DockHost"
+                                        EnablePaneFocusTracking="True"
+                                        HighlightFocusedPane="True" />
+            </DockPanel>
+        </Border>
+    </DockPanel>
+</UserControl>

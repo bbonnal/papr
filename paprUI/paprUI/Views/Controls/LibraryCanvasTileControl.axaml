@@ -1,0 +1,100 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:paprUI.ViewModels"
+             xmlns:m="using:paprUI.Models"
+             xmlns:v="using:paprUI.Views"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignWidth="260"
+             d:DesignHeight="260"
+             x:Class="paprUI.Views.Controls.LibraryCanvasTileControl"
+             x:DataType="vm:LibraryCanvasTileViewModel">
+
+    <UserControl.Resources>
+        <v:FillConverter x:Key="FillConverter"/>
+        <v:FontSizeConverter x:Key="FontSizeConverter"/>
+        <v:LinePointConverter x:Key="LinePointConverter"/>
+        <v:DiameterConverter x:Key="DiameterConverter"/>
+        <v:InverseBoolConverter x:Key="InverseBoolConverter"/>
+    </UserControl.Resources>
+
+    <Border x:Name="TileRoot"
+            Width="260"
+            Padding="10"
+            CornerRadius="10"
+            BorderBrush="{DynamicResource rUIBorderSubtleBrush}"
+            BorderThickness="1"
+            Background="{DynamicResource rUISurfaceBrush}"
+            Classes.selected="{Binding IsSelected}">
+
+        <Border.Styles>
+            <Style Selector="Border#TileRoot.selected">
+                <Setter Property="BorderBrush" Value="{DynamicResource rUIAccentBrush}" />
+                <Setter Property="Background" Value="{DynamicResource rUISelectionBrush}" />
+                <Setter Property="BorderThickness" Value="2" />
+            </Style>
+        </Border.Styles>
+
+        <StackPanel Spacing="8">
+            <TextBlock Text="{Binding FileName}" FontWeight="SemiBold"/>
+            <TextBlock Text="{Binding ModifiedAt}" FontSize="11" Foreground="{DynamicResource rUIForegroundSecondaryBrush}"/>
+
+            <Border Width="230" Height="132" Background="White" BorderBrush="#DADDE3" BorderThickness="1">
+                <Viewbox Stretch="Uniform">
+                    <Canvas Width="960" Height="540" IsVisible="{Binding PreviewAvailable}">
+                        <ItemsControl ItemsSource="{Binding Commands}" Classes="DrawingItemsControl">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <Canvas Width="960" Height="540"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.Styles>
+                                <Style Selector="ItemsControl.DrawingItemsControl > ContentPresenter" x:DataType="m:DrawingCommand">
+                                    <Setter Property="Canvas.Left" Value="{Binding CanvasX}"/>
+                                    <Setter Property="Canvas.Top" Value="{Binding CanvasY}"/>
+                                </Style>
+                            </ItemsControl.Styles>
+                            <ItemsControl.DataTemplates>
+                                <DataTemplate DataType="{x:Type m:TextCommand}">
+                                    <TextBlock Text="{Binding Content}" FontSize="{Binding Size, Converter={StaticResource FontSizeConverter}}" Foreground="Black"/>
+                                </DataTemplate>
+                                <DataTemplate DataType="{x:Type m:RectCommand}">
+                                    <Rectangle Width="{Binding W}" Height="{Binding H}" Fill="{Binding Fill, Converter={StaticResource FillConverter}}" Stroke="Black" StrokeThickness="2"/>
+                                </DataTemplate>
+                                <DataTemplate DataType="{x:Type m:LineCommand}">
+                                    <Line Stroke="Black" StrokeThickness="2">
+                                        <Line.StartPoint>
+                                            <MultiBinding Converter="{StaticResource LinePointConverter}">
+                                                <Binding Path="X1"/>
+                                                <Binding Path="Y1"/>
+                                            </MultiBinding>
+                                        </Line.StartPoint>
+                                        <Line.EndPoint>
+                                            <MultiBinding Converter="{StaticResource LinePointConverter}">
+                                                <Binding Path="X2"/>
+                                                <Binding Path="Y2"/>
+                                            </MultiBinding>
+                                        </Line.EndPoint>
+                                    </Line>
+                                </DataTemplate>
+                                <DataTemplate DataType="{x:Type m:CircleCommand}">
+                                    <Ellipse Width="{Binding R, Converter={StaticResource DiameterConverter}}"
+                                             Height="{Binding R, Converter={StaticResource DiameterConverter}}"
+                                             Fill="{Binding Fill, Converter={StaticResource FillConverter}}"
+                                             Stroke="Black"
+                                             StrokeThickness="2"/>
+                                </DataTemplate>
+                            </ItemsControl.DataTemplates>
+                        </ItemsControl>
+                    </Canvas>
+                </Viewbox>
+            </Border>
+
+            <TextBlock IsVisible="{Binding PreviewAvailable, Converter={StaticResource InverseBoolConverter}}"
+                       Text="Valid JSON (no drawable command preview)"
+                       FontSize="11"
+                       Foreground="{DynamicResource rUIForegroundSecondaryBrush}"/>
+        </StackPanel>
+    </Border>
+</UserControl>

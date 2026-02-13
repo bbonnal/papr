@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using paprUI.Models;
+using Microsoft.Extensions.DependencyInjection;
 using paprUI.ViewModels;
 using paprUI.Views;
 
@@ -9,6 +9,8 @@ namespace paprUI;
 
 public partial class App : Application
 {
+    private ServiceProvider? _services;
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -16,15 +18,21 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        var serialService = new SerialService();
+        var servicesCollection = new ServiceCollection();
+        servicesCollection.AddCommonServices();
+        _services = servicesCollection.BuildServiceProvider();
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = new MainWindowViewModel(serialService),
-            };
+            var mainWindow = _services.GetRequiredService<MainWindow>();
+            mainWindow.DataContext = _services.GetRequiredService<MainWindowViewModel>();
+            desktop.MainWindow = mainWindow;
 
-            desktop.Exit += (s, e) => serialService.Dispose();
+            desktop.Exit += (_, _) =>
+            {
+                _services?.Dispose();
+                _services = null;
+            };
         }
 
         base.OnFrameworkInitializationCompleted();

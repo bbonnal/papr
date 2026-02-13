@@ -1,157 +1,94 @@
-using System;
-using System.Collections.ObjectModel;
-using System.Linq;
 using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.ComponentModel;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Media;
+using Avalonia.Styling;
 using CommunityToolkit.Mvvm.Input;
-using paprUI.Models;
-using System.IO;
-using System.Text.Json;
+using PhosphorIconsAvalonia;
+using rUI.Avalonia.Desktop;
+using rUI.Avalonia.Desktop.Controls.Navigation;
+using rUI.Avalonia.Desktop.Services;
 
 namespace paprUI.ViewModels;
 
-public enum DrawingTool
+public class MainWindowViewModel : ViewModelBase
 {
-    None,
-    Select,
-    Text,
-    Line,
-    Rectangle,
-    Circle,
-    Delete
-}
+    private bool _isInitialized;
 
-public partial class MainWindowViewModel : ViewModelBase
-{
-    private readonly SerialService _serialService;
-
-    [ObservableProperty]
-    private DrawingTool _currentTool = DrawingTool.None;
-
-    [ObservableProperty]
-    private CanvasModel? _currentCanvas;
-
-    public ObservableCollection<CanvasModel> SavedCanvases { get; } = new();
-
-    [ObservableProperty]
-    private DrawingCommand? _selectedElement;
-
-    [ObservableProperty]
-    private string _statusText = "Ready";
-
-    partial void OnSelectedElementChanged(DrawingCommand? value)
+    public MainWindowViewModel(
+        INavigationService navigation,
+        IContentDialogService dialogService,
+        IOverlayService overlayService,
+        IInfoBarService infoBarService)
     {
-        if (value != null)
+        Navigation = navigation;
+        DialogService = dialogService;
+        OverlayService = overlayService;
+        InfoBarService = infoBarService;
+        ToggleThemeCommand = new RelayCommand(ToggleTheme);
+
+        var items = new[]
         {
-            foreach (var element in CurrentCanvas?.Elements ?? Enumerable.Empty<DrawingCommand>())
+            new NavigationItemControl
             {
-                element.IsSelected = element == value;
+                Header = "Canvas",
+                IconData = IconService.CreateGeometry(Icon.app_window, IconType.regular),
+                PageViewModelType = typeof(DrawPageViewModel)
+            },
+            new NavigationItemControl
+            {
+                Header = "Library",
+                IconData = IconService.CreateGeometry(Icon.squares_four, IconType.regular),
+                PageViewModelType = typeof(LibraryPageViewModel)
             }
-            StatusText = $"Selected: {value.GetType().Name}";
-        }
-        else
+        };
+
+        var footerItems = new[]
         {
-            foreach (var element in CurrentCanvas?.Elements ?? Enumerable.Empty<DrawingCommand>())
+            new NavigationItemControl
             {
-                element.IsSelected = false;
+                Header = "Settings",
+                IconData = IconService.CreateGeometry(Icon.gear, IconType.regular),
+                PageViewModelType = typeof(SettingsPageViewModel)
             }
-            StatusText = "Nothing selected";
-        }
+        };
+
+        Logo = new PathIcon
+        {
+            Data = Geometry.Parse("M4 4h16v16H4z M8 8h8v8H8z"),
+            Width = 24,
+            Height = 24,
+            Foreground = new SolidColorBrush(Color.FromRgb(53, 116, 240))
+        };
+
+        Navigation.Initialize(items, footerItems);
     }
 
-    public MainWindowViewModel(SerialService serialService)
+    public INavigationService Navigation { get; }
+    public IContentDialogService DialogService { get; }
+    public IOverlayService OverlayService { get; }
+    public IInfoBarService InfoBarService { get; }
+    public object Logo { get; }
+
+    public IRelayCommand ToggleThemeCommand { get; }
+
+    public async Task InitializeAsync()
     {
-        _serialService = serialService;
-        CurrentCanvas = new CanvasModel { Name = "New Canvas" };
-        SavedCanvases.Add(CurrentCanvas);
+        if (_isInitialized)
+            return;
+
+        _isInitialized = true;
+        await Navigation.NavigateToAsync<DrawPageViewModel>();
     }
 
-    [RelayCommand]
-    private void SelectTool(string toolName)
+    private static void ToggleTheme()
     {
-        if (Enum.TryParse<DrawingTool>(toolName, true, out var tool))
-        {
-            CurrentTool = tool;
-            StatusText = $"Tool: {CurrentTool}";
-        }
-    }
+        var app = Application.Current;
+        if (app is null)
+            return;
 
-    [RelayCommand]
-    private void NewCanvas()
-    {
-        CurrentCanvas = new CanvasModel { Name = $"Canvas {SavedCanvases.Count + 1}" };
-        SavedCanvases.Add(CurrentCanvas);
-        StatusText = "New canvas created";
-    }
-
-    [RelayCommand]
-    private void SaveCanvas()
-    {
-        // For this app, "Save" might mean persist to disk or just keep in list.
-        // Let's implement a simple JSON persistence for all canvases.
-        try
-        {
-            var json = JsonSerializer.Serialize(SavedCanvases);
-            File.WriteAllText("saved_canvases.json", json);
-            StatusText = "All canvases saved to disk";
-        }
-        catch (Exception ex)
-        {
-            StatusText = $"Save failed: {ex.Message}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task UploadCanvas()
-    {
-        if (CurrentCanvas == null) return;
-
-        try
-        {
-            if (!_serialService.IsOpen)
-            {
-                var ports = SerialService.GetAvailablePorts();
-                if (ports.Length == 0)
-                {
-                    StatusText = "No serial ports found!";
-                    return;
-                }
-
-                var port = ports[0];
-                StatusText = $"Connecting to {port}...";
-                _serialService.Connect(port);
-            }
-
-            var payload = new M5PaperPayload
-            {
-                clear = true,
-                commands = CurrentCanvas.Elements.ToList()
-            };
-
-            StatusText = "Uploading...";
-            await _serialService.UploadToM5Paper(payload);
-            StatusText = $"Upload successful! (via {_serialService.CurrentPortName})";
-        }
-        catch (Exception ex)
-        {
-            StatusText = $"Upload failed: {ex.Message}";
-        }
-    }
-
-    [RelayCommand]
-    private void DeleteCanvas()
-    {
-        if (CurrentCanvas != null && SavedCanvases.Count > 1)
-        {
-            var toRemove = CurrentCanvas;
-            SavedCanvases.Remove(toRemove);
-            CurrentCanvas = SavedCanvases.LastOrDefault();
-            StatusText = "Canvas deleted";
-        }
-        else if (CurrentCanvas != null)
-        {
-            CurrentCanvas.Elements.Clear();
-            StatusText = "Canvas cleared (last one)";
-        }
+        app.RequestedThemeVariant = app.ActualThemeVariant == ThemeVariant.Dark
+            ? ThemeVariant.Light
+            : ThemeVariant.Dark;
     }
 }
