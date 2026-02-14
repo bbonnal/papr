@@ -70,6 +70,16 @@ public partial class DrawPageViewModel : ViewModelBase, IShortcutBindingProvider
 
         _serialService.TrafficCaptured += OnSerialTrafficCaptured;
         _serialService.HistoryCleared += OnSerialHistoryCleared;
+        
+        
+        if (!_serialService.IsOpen)
+        {
+            var ports = SerialService.GetAvailablePorts();
+            if (ports.Length == 0)
+                return;
+
+            _serialService.Connect(ports[0]);
+        }
 
         AddCanvas();
     }
@@ -257,14 +267,7 @@ public partial class DrawPageViewModel : ViewModelBase, IShortcutBindingProvider
 
         try
         {
-            if (!_serialService.IsOpen)
-            {
-                var ports = SerialService.GetAvailablePorts();
-                if (ports.Length == 0)
-                    return;
 
-                _serialService.Connect(ports[0]);
-            }
 
             var computed = FocusedCanvas.ComputedShapeIds.ToHashSet(StringComparer.Ordinal);
             var baseScene = SceneDocumentMapper.ToDocument(FocusedCanvas.Shapes, computed);
