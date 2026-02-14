@@ -22,7 +22,7 @@ void setup()
   Serial.begin(115200);
   delay(200);
   Serial.println("\\n\\nM5Paper renderer ready");
-  Serial.println("Accepts Scene JSON (rUI format) and legacy payload JSON");
+  Serial.println("Accepts Scene JSON (rUI format) with optional ImageMatrix payloads");
 }
 
 void loop()
