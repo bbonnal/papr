@@ -1,7 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text.Json.Nodes;
+using Microsoft.Extensions.Logging;
 using SkiaSharp;
 using rUI.Drawing.Core.Scene;
 
@@ -13,6 +13,12 @@ namespace paprUI.Models;
 public sealed class DeviceScenePayloadBuilder
 {
     private const string DataUriPrefix = "data:";
+    private readonly ILogger<DeviceScenePayloadBuilder> _logger;
+
+    public DeviceScenePayloadBuilder(ILogger<DeviceScenePayloadBuilder> logger)
+    {
+        _logger = logger;
+    }
 
     public string BuildPayload(SceneDocument scene, LibrarySettings settings)
     {
@@ -47,6 +53,10 @@ public sealed class DeviceScenePayloadBuilder
                 // Matrix payload is sufficient for device rendering; avoid huge source payloads.
                 shape.Remove("SourcePath");
             }
+            else
+            {
+                _logger.LogWarning("Failed to build image matrix for source {SourcePath}", sourcePath);
+            }
         }
 
         return root.ToJsonString(new System.Text.Json.JsonSerializerOptions
@@ -66,7 +76,7 @@ public sealed class DeviceScenePayloadBuilder
                 return false;
 
             var info = new SKImageInfo(targetWidth, targetHeight, SKColorType.Bgra8888, SKAlphaType.Premul);
-            using var resized = bitmap.Resize(info, SKFilterQuality.Medium);
+            using var resized = bitmap.Resize(info, SKSamplingOptions.Default);
             var src = resized ?? bitmap;
 
             var packed = PackMonochrome(src, threshold, invert);

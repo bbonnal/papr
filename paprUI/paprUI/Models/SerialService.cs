@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO.Ports;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace paprUI.Models;
 
@@ -13,7 +14,13 @@ public class SerialService : IDisposable
     private readonly int _baudRate = 115200;
     private readonly object _sync = new();
     private readonly List<SerialTrafficEntry> _history = [];
+    private readonly ILogger<SerialService> _logger;
     private string _incomingBuffer = string.Empty;
+
+    public SerialService(ILogger<SerialService> logger)
+    {
+        _logger = logger;
+    }
 
     public bool IsOpen => _port?.IsOpen ?? false;
     public string? CurrentPortName => _port?.PortName;
@@ -33,6 +40,7 @@ public class SerialService : IDisposable
         _port.ErrorReceived += OnErrorReceived;
         _port.Open();
         AppendTraffic(SerialTrafficDirection.System, $"Connected to {portName} @ {_baudRate} baud");
+        _logger.LogInformation("Serial connected to {Port} at {BaudRate} baud", portName, _baudRate);
     }
 
     public void Disconnect()
@@ -48,6 +56,7 @@ public class SerialService : IDisposable
             _port.ErrorReceived -= OnErrorReceived;
             _port.Dispose();
             AppendTraffic(SerialTrafficDirection.System, "Serial disconnected");
+            _logger.LogInformation("Serial disconnected from {Port}", _port.PortName);
             _port = null;
         }
     }
@@ -62,6 +71,7 @@ public class SerialService : IDisposable
         // Serial receiver reads line-by-line; force a single-line payload.
         var singleLineJson = json.Replace("\r", string.Empty).Replace("\n", string.Empty);
         AppendTraffic(SerialTrafficDirection.Outgoing, singleLineJson);
+        _logger.LogInformation("Uploading JSON payload with {Length} chars to {Port}", singleLineJson.Length, _port.PortName);
         _port.WriteLine(singleLineJson);
         await Task.Delay(500);
         _port.WriteLine("");
@@ -111,12 +121,14 @@ public class SerialService : IDisposable
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Serial RX error");
             AppendTraffic(SerialTrafficDirection.System, $"RX error: {ex.Message}");
         }
     }
 
     private void OnErrorReceived(object sender, SerialErrorReceivedEventArgs e)
     {
+        _logger.LogWarning("Serial error event: {ErrorType}", e.EventType);
         AppendTraffic(SerialTrafficDirection.System, $"Serial error: {e.EventType}");
     }
 

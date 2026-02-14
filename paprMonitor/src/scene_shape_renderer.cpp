@@ -28,6 +28,21 @@ String GetText(JsonObjectConst obj, const char* key, const char* fallback = "")
   return String(fallback);
 }
 
+bool GetBool(JsonObjectConst obj, const char* key, bool fallback = false)
+{
+  if (!obj[key].isNull()) {
+    return obj[key].as<bool>();
+  }
+
+  return fallback;
+}
+
+int GetLineWeight(JsonObjectConst obj, int fallback = 1)
+{
+  const double lineWeight = GetNumber(obj, "LineWeight", static_cast<double>(fallback));
+  return constrain(max(1, IRound(lineWeight)), 1, 128);
+}
+
 void SetApproxFont(M5Canvas& canvas, double fontSize)
 {
   canvas.setFont(&fonts::FreeSans12pt7b);
@@ -45,16 +60,19 @@ void DrawSceneShape(M5Canvas& canvas, JsonObjectConst shape)
   const Vec2 pos = {GetNumber(shape, "PositionX", 0), GetNumber(shape, "PositionY", 0)};
   const Vec2 orientation = Normalize({GetNumber(shape, "OrientationX", 1), GetNumber(shape, "OrientationY", 0)});
   const Vec2 normal = Perp(orientation);
+  const int lineWeight = GetLineWeight(shape, 1);
+  const bool fill = GetBool(shape, "Fill", false);
 
   if (kind == "Point") {
-    canvas.fillCircle(IRound(pos.x), IRound(pos.y), 3, TFT_BLACK);
+    const int pointRadius = max(1, IRound(lineWeight * 0.5));
+    canvas.fillCircle(IRound(pos.x), IRound(pos.y), pointRadius, TFT_BLACK);
     return;
   }
 
   if (kind == "Line") {
     const double length = GetNumber(shape, "Length", 0);
     const Vec2 end = {pos.x + (orientation.x * length), pos.y + (orientation.y * length)};
-    DrawLine(canvas, pos, end);
+    DrawLine(canvas, pos, end, lineWeight);
     return;
   }
 
@@ -69,16 +87,31 @@ void DrawSceneShape(M5Canvas& canvas, JsonObjectConst shape)
     const Vec2 br = {pos.x + (orientation.x * hw) + (normal.x * hh), pos.y + (orientation.y * hw) + (normal.y * hh)};
     const Vec2 bl = {pos.x - (orientation.x * hw) + (normal.x * hh), pos.y - (orientation.y * hw) + (normal.y * hh)};
 
-    DrawLine(canvas, tl, tr);
-    DrawLine(canvas, tr, br);
-    DrawLine(canvas, br, bl);
-    DrawLine(canvas, bl, tl);
+    if (fill) {
+      canvas.fillTriangle(IRound(tl.x), IRound(tl.y), IRound(tr.x), IRound(tr.y), IRound(br.x), IRound(br.y), TFT_BLACK);
+      canvas.fillTriangle(IRound(tl.x), IRound(tl.y), IRound(br.x), IRound(br.y), IRound(bl.x), IRound(bl.y), TFT_BLACK);
+    }
+
+    DrawLine(canvas, tl, tr, lineWeight);
+    DrawLine(canvas, tr, br, lineWeight);
+    DrawLine(canvas, br, bl, lineWeight);
+    DrawLine(canvas, bl, tl, lineWeight);
     return;
   }
 
   if (kind == "Circle") {
-    const double r = GetNumber(shape, "Radius", 0);
-    canvas.drawCircle(IRound(pos.x), IRound(pos.y), max(1, IRound(r)), TFT_BLACK);
+    const int radius = max(1, IRound(GetNumber(shape, "Radius", 0)));
+    const int cx = IRound(pos.x);
+    const int cy = IRound(pos.y);
+
+    if (fill || lineWeight >= radius) {
+      canvas.fillCircle(cx, cy, radius, TFT_BLACK);
+      return;
+    }
+
+    for (int r = radius; r > (radius - lineWeight); --r) {
+      canvas.drawCircle(cx, cy, r, TFT_BLACK);
+    }
     return;
   }
 
@@ -160,8 +193,8 @@ void DrawSceneShape(M5Canvas& canvas, JsonObjectConst shape)
     const double headLength = GetNumber(shape, "HeadLength", 18);
     const Vec2 end = {pos.x + (orientation.x * length), pos.y + (orientation.y * length)};
 
-    DrawLine(canvas, pos, end);
-    DrawArrowHead(canvas, end, pos, headLength);
+    DrawLine(canvas, pos, end, lineWeight);
+    DrawArrowHead(canvas, end, pos, headLength, lineWeight);
     return;
   }
 
@@ -177,11 +210,11 @@ void DrawSceneShape(M5Canvas& canvas, JsonObjectConst shape)
     const Vec2 bl = {start.x - halfW.x, start.y - halfW.y};
     const Vec2 br = {end.x - halfW.x, end.y - halfW.y};
 
-    DrawLine(canvas, tl, tr);
-    DrawLine(canvas, tr, br);
-    DrawLine(canvas, br, bl);
-    DrawLine(canvas, bl, tl);
-    DrawLine(canvas, start, end);
+    DrawLine(canvas, tl, tr, lineWeight);
+    DrawLine(canvas, tr, br, lineWeight);
+    DrawLine(canvas, br, bl, lineWeight);
+    DrawLine(canvas, bl, tl, lineWeight);
+    DrawLine(canvas, start, end, lineWeight);
     return;
   }
 
@@ -192,10 +225,10 @@ void DrawSceneShape(M5Canvas& canvas, JsonObjectConst shape)
     const Vec2 xEnd = {pos.x + (orientation.x * xLen), pos.y + (orientation.y * xLen)};
     const Vec2 yEnd = {pos.x + (normal.x * yLen), pos.y + (normal.y * yLen)};
 
-    DrawLine(canvas, pos, xEnd);
-    DrawLine(canvas, pos, yEnd);
-    DrawArrowHead(canvas, xEnd, pos, 10);
-    DrawArrowHead(canvas, yEnd, pos, 10);
+    DrawLine(canvas, pos, xEnd, lineWeight);
+    DrawLine(canvas, pos, yEnd, lineWeight);
+    DrawArrowHead(canvas, xEnd, pos, 10, lineWeight);
+    DrawArrowHead(canvas, yEnd, pos, 10, lineWeight);
     return;
   }
 
@@ -210,11 +243,11 @@ void DrawSceneShape(M5Canvas& canvas, JsonObjectConst shape)
     const Vec2 os = {pos.x + offsetV.x, pos.y + offsetV.y};
     const Vec2 oe = {end.x + offsetV.x, end.y + offsetV.y};
 
-    DrawLine(canvas, pos, os);
-    DrawLine(canvas, end, oe);
-    DrawLine(canvas, os, oe);
-    DrawArrowHead(canvas, os, oe, 9);
-    DrawArrowHead(canvas, oe, os, 9);
+    DrawLine(canvas, pos, os, lineWeight);
+    DrawLine(canvas, end, oe, lineWeight);
+    DrawLine(canvas, os, oe, lineWeight);
+    DrawArrowHead(canvas, os, oe, 9, lineWeight);
+    DrawArrowHead(canvas, oe, os, 9, lineWeight);
 
     if (label.length() == 0) {
       label = String(length, 1);
@@ -234,9 +267,9 @@ void DrawSceneShape(M5Canvas& canvas, JsonObjectConst shape)
     const Vec2 startP = {pos.x + (cos(start) * radius), pos.y + (sin(start) * radius)};
     const Vec2 endP = {pos.x + (cos(start + sweep) * radius), pos.y + (sin(start + sweep) * radius)};
 
-    DrawLine(canvas, pos, startP);
-    DrawLine(canvas, pos, endP);
-    DrawArcBySegments(canvas, pos, radius, start, sweep);
+    DrawLine(canvas, pos, startP, lineWeight);
+    DrawLine(canvas, pos, endP, lineWeight);
+    DrawArcBySegments(canvas, pos, radius, start, sweep, 48, lineWeight);
 
     if (label.length() == 0) {
       label = String(fabs(sweep * 180.0 / M_PI), 1) + String("deg");
@@ -255,7 +288,7 @@ void DrawSceneShape(M5Canvas& canvas, JsonObjectConst shape)
     const double radius = GetNumber(shape, "Radius", 40);
     const double start = GetNumber(shape, "StartAngleRad", 0);
     const double sweep = GetNumber(shape, "SweepAngleRad", M_PI / 2.0);
-    DrawArcBySegments(canvas, pos, radius, start, sweep);
+    DrawArcBySegments(canvas, pos, radius, start, sweep, 48, lineWeight);
     return;
   }
 

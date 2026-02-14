@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
+using Microsoft.Extensions.Logging;
 using rUI.Drawing.Core.Scene;
 
 namespace paprUI.Models;
@@ -14,9 +15,11 @@ public sealed class SceneImagePipeline
 {
     private const string DataUriPrefix = "data:";
     private readonly string _materializedImageDirectory;
+    private readonly ILogger<SceneImagePipeline> _logger;
 
-    public SceneImagePipeline()
+    public SceneImagePipeline(ILogger<SceneImagePipeline> logger)
     {
+        _logger = logger;
         _materializedImageDirectory = Path.Combine(Path.GetTempPath(), "paprUI", "embedded-images");
         Directory.CreateDirectory(_materializedImageDirectory);
     }
@@ -53,8 +56,9 @@ public sealed class SceneImagePipeline
                 var dataUri = $"data:{mimeType};base64,{Convert.ToBase64String(bytes)}";
                 mappedShapes.Add(shape with { SourcePath = dataUri });
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Failed to embed image from path {Path}", sourcePath);
                 mappedShapes.Add(shape);
             }
         }
@@ -92,8 +96,9 @@ public sealed class SceneImagePipeline
 
                 mappedShapes.Add(shape with { SourcePath = filePath });
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Failed to materialize embedded image.");
                 mappedShapes.Add(shape);
             }
         }

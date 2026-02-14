@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using paprUI.Models;
 using rUI.Avalonia.Desktop;
 using rUI.Drawing.Core.Scene;
@@ -19,16 +20,19 @@ public partial class LibraryPageViewModel : ViewModelBase, INavigationViewModel
     private readonly LibrarySettings _librarySettings;
     private readonly DrawPageViewModel _drawPageViewModel;
     private readonly INavigationService _navigation;
+    private readonly ILogger<LibraryPageViewModel> _logger;
     private readonly ISceneSerializer _sceneSerializer = new JsonSceneSerializer();
 
     public LibraryPageViewModel(
         LibrarySettings librarySettings,
         DrawPageViewModel drawPageViewModel,
-        INavigationService navigation)
+        INavigationService navigation,
+        ILogger<LibraryPageViewModel> logger)
     {
         _librarySettings = librarySettings;
         _drawPageViewModel = drawPageViewModel;
         _navigation = navigation;
+        _logger = logger;
 
         RefreshCommand = new AsyncRelayCommand(RefreshAsync);
         LoadSelectedToCanvasCommand = new AsyncRelayCommand(LoadSelectedToCanvasAsync);
@@ -106,9 +110,9 @@ public partial class LibraryPageViewModel : ViewModelBase, INavigationViewModel
                         PreviewAvailable = commands.Count > 0
                     });
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Ignore invalid JSON files.
+                    _logger.LogWarning(ex, "Skipping invalid library JSON file {File}", file);
                 }
             }
 
@@ -122,6 +126,8 @@ public partial class LibraryPageViewModel : ViewModelBase, INavigationViewModel
                 SelectedTile = null;
                 StatusText = $"{Tiles.Count} valid JSON file(s) in library";
             });
+
+            _logger.LogInformation("Library refreshed from {LibraryPath}. ValidFiles={Count}", path, loadedTiles.Count);
         });
     }
 
@@ -137,6 +143,7 @@ public partial class LibraryPageViewModel : ViewModelBase, INavigationViewModel
             _drawPageViewModel.AddCanvasFromCommands(title, SelectedTile.Commands);
 
         await _navigation.NavigateToAsync<DrawPageViewModel>();
+        _logger.LogInformation("Loaded library item {FileName} into canvas", SelectedTile.FileName);
     }
 
     private SceneDocument? TryDeserializeScene(string json)
@@ -146,8 +153,9 @@ public partial class LibraryPageViewModel : ViewModelBase, INavigationViewModel
             var scene = _sceneSerializer.Deserialize(json);
             return scene.Shapes.Count > 0 ? scene : null;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Failed to deserialize scene JSON payload.");
             return null;
         }
     }

@@ -1,6 +1,6 @@
 using System;
-using System.Collections.ObjectModel;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -10,14 +10,15 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using Flowxel.Core.Geometry.Primitives;
 using paprUI.Models;
 using rUI.Avalonia.Desktop;
 using rUI.Avalonia.Desktop.Services;
 using rUI.Avalonia.Desktop.Services.Shortcuts;
 using rUI.Drawing.Core;
-using rUI.Drawing.Core.Shapes;
 using rUI.Drawing.Core.Scene;
+using rUI.Drawing.Core.Shapes;
 using AvaloniaPoint = Avalonia.Point;
 using AvaloniaVector = Avalonia.Vector;
 using FlowCircle = Flowxel.Core.Geometry.Shapes.Circle;
@@ -35,6 +36,7 @@ public partial class DrawPageViewModel : ViewModelBase, IShortcutBindingProvider
     private readonly SceneImagePipeline _sceneImagePipeline;
     private readonly DeviceScenePayloadBuilder _deviceScenePayloadBuilder;
     private readonly INavigationService _navigation;
+    private readonly ILogger<DrawPageViewModel> _logger;
     private readonly ISceneSerializer _sceneSerializer = new JsonSceneSerializer();
     private int _nextCanvasNumber = 1;
 
@@ -45,13 +47,15 @@ public partial class DrawPageViewModel : ViewModelBase, IShortcutBindingProvider
         DeviceScenePayloadBuilder deviceScenePayloadBuilder,
         INavigationService navigation,
         IContentDialogService dialogService,
-        IInfoBarService infoBarService)
+        IInfoBarService infoBarService,
+        ILogger<DrawPageViewModel> logger)
     {
         _serialService = serialService;
         _librarySettings = librarySettings;
         _sceneImagePipeline = sceneImagePipeline;
         _deviceScenePayloadBuilder = deviceScenePayloadBuilder;
         _navigation = navigation;
+        _logger = logger;
         DialogService = dialogService;
         InfoBarService = infoBarService;
 
@@ -82,6 +86,7 @@ public partial class DrawPageViewModel : ViewModelBase, IShortcutBindingProvider
         }
 
         AddCanvas();
+        _logger.LogInformation("Draw page initialized.");
     }
 
     public IContentDialogService DialogService { get; }
@@ -141,6 +146,7 @@ public partial class DrawPageViewModel : ViewModelBase, IShortcutBindingProvider
         Canvases.Add(canvas);
         FocusedCanvas = canvas;
         OnPropertyChanged(nameof(StatusText));
+        _logger.LogInformation("Canvas added. Title={Title}", canvas.Title);
         return canvas;
     }
 
@@ -205,6 +211,7 @@ public partial class DrawPageViewModel : ViewModelBase, IShortcutBindingProvider
 
         OnPropertyChanged(nameof(StatusText));
         NotifyToolSelectionChanged();
+        _logger.LogInformation("Canvas removed. Id={CanvasId}", canvasId);
     }
 
     private void AddCanvasCommandExecute()
@@ -253,10 +260,11 @@ public partial class DrawPageViewModel : ViewModelBase, IShortcutBindingProvider
             var json = _sceneSerializer.Serialize(serializableScene);
             await File.WriteAllTextAsync(outputPath, json);
             OnPropertyChanged(nameof(StatusText));
+            _logger.LogInformation("Canvas saved to {Path}", outputPath);
         }
-        catch
+        catch (Exception ex)
         {
-            // keep UI stable
+            _logger.LogError(ex, "Failed to save focused canvas.");
         }
     }
 
@@ -284,10 +292,11 @@ public partial class DrawPageViewModel : ViewModelBase, IShortcutBindingProvider
             var payloadJson = _deviceScenePayloadBuilder.BuildPayload(scene, _librarySettings);
             await _serialService.UploadRawJsonAsync(payloadJson);
             OnPropertyChanged(nameof(StatusText));
+            _logger.LogInformation("Canvas uploaded to serial device.");
         }
-        catch
+        catch (Exception ex)
         {
-            // keep UI stable
+            _logger.LogError(ex, "Failed to upload focused canvas.");
         }
     }
 
@@ -299,6 +308,7 @@ public partial class DrawPageViewModel : ViewModelBase, IShortcutBindingProvider
         FocusedCanvas.Shapes.Clear();
         FocusedCanvas.ComputedShapeIds.Clear();
         OnPropertyChanged(nameof(StatusText));
+        _logger.LogInformation("Focused canvas cleared.");
     }
 
     private void ResetFocusedView()
@@ -335,6 +345,7 @@ public partial class DrawPageViewModel : ViewModelBase, IShortcutBindingProvider
     private async Task OpenLibraryAsync()
     {
         await _navigation.NavigateToAsync<LibraryPageViewModel>();
+        _logger.LogInformation("Navigated to library page.");
     }
 
     private void HandleEscapeToSelect()

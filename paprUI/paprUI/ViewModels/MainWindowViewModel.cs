@@ -4,6 +4,8 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Styling;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
+using paprUI.Models;
 using PhosphorIconsAvalonia;
 using rUI.Avalonia.Desktop;
 using rUI.Avalonia.Desktop.Controls.Navigation;
@@ -14,13 +16,19 @@ namespace paprUI.ViewModels;
 public class MainWindowViewModel : ViewModelBase
 {
     private bool _isInitialized;
+    private readonly LibrarySettings _settings;
+    private readonly ILogger<MainWindowViewModel> _logger;
 
     public MainWindowViewModel(
         INavigationService navigation,
         IContentDialogService dialogService,
         IOverlayService overlayService,
-        IInfoBarService infoBarService)
+        IInfoBarService infoBarService,
+        LibrarySettings settings,
+        ILogger<MainWindowViewModel> logger)
     {
+        _settings = settings;
+        _logger = logger;
         Navigation = navigation;
         DialogService = dialogService;
         OverlayService = overlayService;
@@ -77,8 +85,14 @@ public class MainWindowViewModel : ViewModelBase
         if (_isInitialized)
             return;
 
+        await _settings.InitializeAsync();
         _isInitialized = true;
         await Navigation.NavigateToAsync<DrawPageViewModel>();
+        _logger.LogInformation(
+            "Main window initialized. Settings loaded from {Path}. Theme={Theme} Language={Language}",
+            _settings.SettingsFilePath,
+            _settings.ThemeMode,
+            _settings.LanguageCode);
     }
 
     private static void ToggleTheme()
