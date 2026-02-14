@@ -20,9 +20,8 @@ void setup()
   papr::InitializeCanvas(canvas, M5.Display.width(), M5.Display.height());
 
   Serial.begin(115200);
-  delay(200);
-  Serial.println("\\n\\nM5Paper renderer ready");
-  Serial.println("Accepts Scene JSON (rUI format) with optional ImageMatrix payloads");
+  delay(100);
+  Serial.println("Papr monitor ready");
 }
 
 void loop()
