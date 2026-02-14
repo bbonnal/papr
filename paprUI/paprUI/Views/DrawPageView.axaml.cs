@@ -2,9 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Reflection;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using Avalonia.Data;
+using Microsoft.Extensions.DependencyInjection;
 using rUI.Avalonia.Desktop.Controls.Docking;
+using rUI.Avalonia.Desktop.Services.Shortcuts;
+using rUI.Drawing.Core;
 using rUI.Drawing.Avalonia.Controls.Drawing;
 using paprUI.ViewModels;
 
@@ -14,6 +20,7 @@ public partial class DrawPageView : UserControl
 {
     private readonly Dictionary<Guid, DockPane> _paneByCanvasId = [];
     private DrawPageViewModel? _currentViewModel;
+    private IDisposable? _shortcutBinding;
 
     public DrawPageView()
     {
@@ -26,16 +33,23 @@ public partial class DrawPageView : UserControl
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
         if (_currentViewModel is not null)
+        {
             _currentViewModel.Canvases.CollectionChanged -= OnCanvasCollectionChanged;
+            _currentViewModel.EscapeToSelectRequested -= OnEscapeToSelectRequested;
+        }
 
         _currentViewModel = null;
+        _shortcutBinding?.Dispose();
+        _shortcutBinding = null;
 
         if (DataContext is not DrawPageViewModel vm)
             return;
 
         _currentViewModel = vm;
         vm.Canvases.CollectionChanged += OnCanvasCollectionChanged;
+        vm.EscapeToSelectRequested += OnEscapeToSelectRequested;
         RebuildDockPanes(vm);
+        BindShortcuts(vm);
     }
 
     private void OnCanvasCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -127,5 +141,58 @@ public partial class DrawPageView : UserControl
             return;
 
         vm.RemoveCanvas(canvasId);
+    }
+
+    private void BindShortcuts(DrawPageViewModel vm)
+    {
+        var services = App.Services;
+        if (services is null)
+            return;
+
+        var shortcutService = services.GetService<IShortcutService>();
+        if (shortcutService is null)
+            return;
+
+        _shortcutBinding = shortcutService.Bind(this, vm.GetShortcutDefinitions());
+    }
+
+    private void OnEscapeToSelectRequested(object? sender, EventArgs e)
+    {
+        ClearFocusedCanvasSelection();
+    }
+
+    private void ClearFocusedCanvasSelection()
+    {
+        DrawingCanvasControl? drawingCanvas = null;
+
+        if (DockHost.FocusedPane?.PaneContent is DrawingCanvasControl focusedCanvas)
+            drawingCanvas = focusedCanvas;
+        else if (DataContext is DrawPageViewModel vm &&
+                 vm.FocusedCanvas is not null &&
+                 _paneByCanvasId.TryGetValue(vm.FocusedCanvas.Id, out var pane) &&
+                 pane.PaneContent is DrawingCanvasControl vmCanvas)
+            drawingCanvas = vmCanvas;
+
+        if (drawingCanvas is null)
+            return;
+
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        drawingCanvas.GetType().GetField("_selectedShape", flags)?.SetValue(drawingCanvas, null);
+        drawingCanvas.GetType().GetField("_hoveredShape", flags)?.SetValue(drawingCanvas, null);
+        drawingCanvas.GetType().GetField("_contextMenuTargetShape", flags)?.SetValue(drawingCanvas, null);
+        drawingCanvas.GetType().GetField("_previewShape", flags)?.SetValue(drawingCanvas, null);
+        drawingCanvas.GetType().GetField("_lastDragWorld", flags)?.SetValue(drawingCanvas, null);
+        drawingCanvas.GetType().GetField("_activeHandle", flags)?.SetValue(drawingCanvas, ShapeHandleKind.None);
+        drawingCanvas.InvalidateVisual();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        if (_currentViewModel is not null)
+            _currentViewModel.EscapeToSelectRequested -= OnEscapeToSelectRequested;
+
+        _shortcutBinding?.Dispose();
+        _shortcutBinding = null;
+        base.OnDetachedFromVisualTree(e);
     }
 }

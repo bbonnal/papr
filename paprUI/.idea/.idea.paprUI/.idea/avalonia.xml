@@ -5,7 +5,10 @@
       <map>
         <entry key="paprUI/App.axaml" value="paprUI/paprUI.csproj" />
         <entry key="paprUI/MainWindow.axaml" value="paprUI/paprUI.csproj" />
+        <entry key="paprUI/Views/Controls/SerialConsoleControl.axaml" value="paprUI/paprUI.csproj" />
+        <entry key="paprUI/Views/DrawPageView.axaml" value="paprUI/paprUI.csproj" />
         <entry key="paprUI/Views/MainWindow.axaml" value="paprUI/paprUI.csproj" />
+        <entry key="paprUI/Views/SettingsPageView.axaml" value="paprUI/paprUI.csproj" />
       </map>
     </option>
   </component>

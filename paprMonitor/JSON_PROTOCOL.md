@@ -35,7 +35,13 @@ Supported shape kinds on ESP32 renderer:
 
 Notes:
 - Some advanced kinds are approximated to available e-paper primitives.
-- `Image` is rendered as a placeholder frame/cross on device.
+- `Image` supports matrix payload rendering via optional `ImageMatrix`:
+  - `Width` (int)
+  - `Height` (int)
+  - `Bpp` (int, currently `1` supported)
+  - `BlackIsOne` (bool)
+  - `Data` (base64, row-major packed bits)
+- If `ImageMatrix` is missing/invalid, `Image` falls back to placeholder frame/cross.
 - Device performs a deep-clean cycle before each JSON canvas transmission.
 
 ## Legacy Format (still accepted)

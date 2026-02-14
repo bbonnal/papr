@@ -7,11 +7,14 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Media;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Flowxel.Core.Geometry.Primitives;
 using paprUI.Models;
+using rUI.Avalonia.Desktop;
 using rUI.Avalonia.Desktop.Services;
+using rUI.Avalonia.Desktop.Services.Shortcuts;
 using rUI.Drawing.Core;
 using rUI.Drawing.Core.Shapes;
 using rUI.Drawing.Core.Scene;
@@ -25,21 +28,30 @@ using Shape = Flowxel.Core.Geometry.Shapes.Shape;
 
 namespace paprUI.ViewModels;
 
-public partial class DrawPageViewModel : ViewModelBase
+public partial class DrawPageViewModel : ViewModelBase, IShortcutBindingProvider
 {
     private readonly SerialService _serialService;
     private readonly LibrarySettings _librarySettings;
+    private readonly SceneImagePipeline _sceneImagePipeline;
+    private readonly DeviceScenePayloadBuilder _deviceScenePayloadBuilder;
+    private readonly INavigationService _navigation;
     private readonly ISceneSerializer _sceneSerializer = new JsonSceneSerializer();
     private int _nextCanvasNumber = 1;
 
     public DrawPageViewModel(
         SerialService serialService,
         LibrarySettings librarySettings,
+        SceneImagePipeline sceneImagePipeline,
+        DeviceScenePayloadBuilder deviceScenePayloadBuilder,
+        INavigationService navigation,
         IContentDialogService dialogService,
         IInfoBarService infoBarService)
     {
         _serialService = serialService;
         _librarySettings = librarySettings;
+        _sceneImagePipeline = sceneImagePipeline;
+        _deviceScenePayloadBuilder = deviceScenePayloadBuilder;
+        _navigation = navigation;
         DialogService = dialogService;
         InfoBarService = infoBarService;
 
@@ -49,6 +61,15 @@ public partial class DrawPageViewModel : ViewModelBase
         UploadCanvasCommand = new AsyncRelayCommand(UploadFocusedCanvasAsync);
         DeleteCanvasCommand = new RelayCommand(ClearFocusedCanvas);
         ResetFocusedViewCommand = new RelayCommand(ResetFocusedView);
+        OpenLibraryCommand = new AsyncRelayCommand(OpenLibraryAsync);
+        EscapeToSelectToolCommand = new RelayCommand(HandleEscapeToSelect);
+        ClearSerialConsoleCommand = new RelayCommand(ClearSerialConsole);
+
+        foreach (var entry in _serialService.GetHistorySnapshot())
+            SerialEntries.Add(entry);
+
+        _serialService.TrafficCaptured += OnSerialTrafficCaptured;
+        _serialService.HistoryCleared += OnSerialHistoryCleared;
 
         AddCanvas();
     }
@@ -67,6 +88,17 @@ public partial class DrawPageViewModel : ViewModelBase
     public bool IsLineToolActive => FocusedCanvas?.ActiveTool == DrawingTool.Line;
     public bool IsRectangleToolActive => FocusedCanvas?.ActiveTool == DrawingTool.Rectangle;
     public bool IsCircleToolActive => FocusedCanvas?.ActiveTool == DrawingTool.Circle;
+    public bool IsPointToolActive => FocusedCanvas?.ActiveTool == DrawingTool.Point;
+    public bool IsArcToolActive => FocusedCanvas?.ActiveTool == DrawingTool.Arc;
+    public bool IsArrowToolActive => FocusedCanvas?.ActiveTool == DrawingTool.Arrow;
+    public bool IsTextBoxToolActive => FocusedCanvas?.ActiveTool == DrawingTool.TextBox;
+    public bool IsMultilineTextToolActive => FocusedCanvas?.ActiveTool == DrawingTool.MultilineText;
+    public bool IsIconToolActive => FocusedCanvas?.ActiveTool == DrawingTool.Icon;
+    public bool IsImageToolActive => FocusedCanvas?.ActiveTool == DrawingTool.Image;
+    public bool IsCenterlineRectangleToolActive => FocusedCanvas?.ActiveTool == DrawingTool.CenterlineRectangle;
+    public bool IsReferentialToolActive => FocusedCanvas?.ActiveTool == DrawingTool.Referential;
+    public bool IsDimensionToolActive => FocusedCanvas?.ActiveTool == DrawingTool.Dimension;
+    public bool IsAngleDimensionToolActive => FocusedCanvas?.ActiveTool == DrawingTool.AngleDimension;
 
     public IRelayCommand AddCanvasCommand { get; }
     public IRelayCommand<string> SelectToolCommand { get; }
@@ -74,6 +106,12 @@ public partial class DrawPageViewModel : ViewModelBase
     public IAsyncRelayCommand UploadCanvasCommand { get; }
     public IRelayCommand DeleteCanvasCommand { get; }
     public IRelayCommand ResetFocusedViewCommand { get; }
+    public IAsyncRelayCommand OpenLibraryCommand { get; }
+    public IRelayCommand EscapeToSelectToolCommand { get; }
+    public IRelayCommand ClearSerialConsoleCommand { get; }
+    public ObservableCollection<SerialTrafficEntry> SerialEntries { get; } = [];
+
+    public event EventHandler? EscapeToSelectRequested;
 
     public string StatusText => FocusedCanvas is null
         ? $"Canvases: {Canvases.Count} | Focused: none"
@@ -114,7 +152,8 @@ public partial class DrawPageViewModel : ViewModelBase
     public CanvasDocumentViewModel AddCanvasFromScene(string title, SceneDocument scene)
     {
         var canvas = AddCanvas(title);
-        var loaded = SceneDocumentMapper.FromDocument(scene);
+        var sceneWithMaterializedImages = _sceneImagePipeline.MaterializeEmbeddedImages(scene);
+        var loaded = SceneDocumentMapper.FromDocument(sceneWithMaterializedImages);
 
         foreach (var shape in loaded.Shapes)
             canvas.Shapes.Add(shape);
@@ -200,7 +239,8 @@ public partial class DrawPageViewModel : ViewModelBase
             var fileName = $"{fileSafeName}_{DateTime.Now:yyyyMMdd_HHmmss}.json";
             var outputPath = Path.Combine(_librarySettings.LibraryPath, fileName);
 
-            var json = _sceneSerializer.Serialize(scene);
+            var serializableScene = _sceneImagePipeline.EmbedImages(scene);
+            var json = _sceneSerializer.Serialize(serializableScene);
             await File.WriteAllTextAsync(outputPath, json);
             OnPropertyChanged(nameof(StatusText));
         }
@@ -238,7 +278,8 @@ public partial class DrawPageViewModel : ViewModelBase
                 CanvasBoundaryHeight = FocusedCanvas.CanvasBoundaryHeight
             };
 
-            await _serialService.UploadRawJsonAsync(_sceneSerializer.Serialize(scene));
+            var payloadJson = _deviceScenePayloadBuilder.BuildPayload(scene, _librarySettings);
+            await _serialService.UploadRawJsonAsync(payloadJson);
             OnPropertyChanged(nameof(StatusText));
         }
         catch
@@ -264,6 +305,44 @@ public partial class DrawPageViewModel : ViewModelBase
 
         FocusedCanvas.Zoom = 1d;
         FocusedCanvas.Pan = default;
+    }
+
+    public IEnumerable<ShortcutDefinition> GetShortcutDefinitions()
+    {
+        return
+        [
+            new ShortcutDefinition("Ctrl+S", SaveCanvasCommand, Description: "Save canvas"),
+            new ShortcutDefinition("Ctrl+O", OpenLibraryCommand, Description: "Open library"),
+            new ShortcutDefinition("Ctrl+U", UploadCanvasCommand, Description: "Upload canvas"),
+            new ShortcutDefinition("Ctrl+R", ResetFocusedViewCommand, Description: "Reset view"),
+            new ShortcutDefinition("Ctrl+Shift+Delete", DeleteCanvasCommand, Description: "Clear focused canvas"),
+
+            new ShortcutDefinition("Escape", EscapeToSelectToolCommand, Description: "Clear selection and select tool"),
+            new ShortcutDefinition("P", SelectToolCommand, "Point", Description: "Point tool"),
+            new ShortcutDefinition("L", SelectToolCommand, "Line", Description: "Line tool"),
+            new ShortcutDefinition("R", SelectToolCommand, "Rectangle", Description: "Rectangle tool"),
+            new ShortcutDefinition("C", SelectToolCommand, "Circle", Description: "Circle tool"),
+            new ShortcutDefinition("A", SelectToolCommand, "Arc", Description: "Arc tool"),
+            new ShortcutDefinition("T", SelectToolCommand, "Text", Description: "Text tool"),
+            new ShortcutDefinition("M", SelectToolCommand, "MultilineText", Description: "Multiline text tool"),
+            new ShortcutDefinition("I", SelectToolCommand, "Image", Description: "Image tool")
+        ];
+    }
+
+    private async Task OpenLibraryAsync()
+    {
+        await _navigation.NavigateToAsync<LibraryPageViewModel>();
+    }
+
+    private void HandleEscapeToSelect()
+    {
+        SelectToolByName("Select");
+        EscapeToSelectRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ClearSerialConsole()
+    {
+        _serialService.ClearHistory();
     }
 
     private static DrawingCommand? ToDrawingCommand(Shape shape)
@@ -378,6 +457,32 @@ public partial class DrawPageViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsLineToolActive));
         OnPropertyChanged(nameof(IsRectangleToolActive));
         OnPropertyChanged(nameof(IsCircleToolActive));
+        OnPropertyChanged(nameof(IsPointToolActive));
+        OnPropertyChanged(nameof(IsArcToolActive));
+        OnPropertyChanged(nameof(IsArrowToolActive));
+        OnPropertyChanged(nameof(IsTextBoxToolActive));
+        OnPropertyChanged(nameof(IsMultilineTextToolActive));
+        OnPropertyChanged(nameof(IsIconToolActive));
+        OnPropertyChanged(nameof(IsImageToolActive));
+        OnPropertyChanged(nameof(IsCenterlineRectangleToolActive));
+        OnPropertyChanged(nameof(IsReferentialToolActive));
+        OnPropertyChanged(nameof(IsDimensionToolActive));
+        OnPropertyChanged(nameof(IsAngleDimensionToolActive));
+    }
+
+    private void OnSerialTrafficCaptured(object? sender, SerialTrafficEntry entry)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            SerialEntries.Add(entry);
+            if (SerialEntries.Count > 1500)
+                SerialEntries.RemoveAt(0);
+        });
+    }
+
+    private void OnSerialHistoryCleared(object? sender, EventArgs e)
+    {
+        Dispatcher.UIThread.Post(() => SerialEntries.Clear());
     }
 }
 

@@ -4,6 +4,7 @@ using paprUI.ViewModels;
 using paprUI.Views;
 using rUI.Avalonia.Desktop;
 using rUI.Avalonia.Desktop.Services;
+using rUI.Avalonia.Desktop.Services.Shortcuts;
 
 namespace paprUI;
 
@@ -13,13 +14,17 @@ public static class ServiceCollectionExtensions
     {
         _ = services.AddSingleton<SerialService>();
         _ = services.AddSingleton<LibrarySettings>();
+        _ = services.AddSingleton<SceneImagePipeline>();
+        _ = services.AddSingleton<DeviceScenePayloadBuilder>();
 
+        _ = services.AddSingleton<INavigationViewModelResolver, ServiceProviderNavigationViewModelResolver>();
         _ = services.AddSingleton<NavigationService>();
         _ = services.AddSingleton<INavigationService>(sp => sp.GetRequiredService<NavigationService>());
 
         _ = services.AddSingleton<IContentDialogService, ContentDialogService>();
         _ = services.AddSingleton<IInfoBarService, InfoBarService>();
         _ = services.AddSingleton<IOverlayService, OverlayService>();
+        _ = services.AddSingleton<IShortcutService, ShortcutService>();
 
         _ = services.AddSingleton<MainWindow>();
         _ = services.AddSingleton<MainWindowViewModel>();

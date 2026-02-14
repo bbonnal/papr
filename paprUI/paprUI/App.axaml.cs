@@ -1,3 +1,4 @@
+using System;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -10,6 +11,7 @@ namespace paprUI;
 public partial class App : Application
 {
     private ServiceProvider? _services;
+    public static IServiceProvider? Services => (Current as App)?._services;
 
     public override void Initialize()
     {

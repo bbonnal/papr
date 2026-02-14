@@ -1,0 +1,84 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:paprUI.Models"
+             xmlns:controls="using:paprUI.Views.Controls"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="paprUI.Views.Controls.SerialConsoleControl"
+             x:Name="Root"
+             d:DesignWidth="900"
+             d:DesignHeight="220">
+
+    <UserControl.Resources>
+        <controls:SerialDirectionToBrushConverter x:Key="SerialDirectionToBrushConverter" />
+        <controls:SerialDirectionToLabelConverter x:Key="SerialDirectionToLabelConverter" />
+    </UserControl.Resources>
+
+    <Border Background="{DynamicResource rUISurfaceBrush}"
+            BorderBrush="{DynamicResource rUIBorderSubtleBrush}"
+            BorderThickness="1"
+            CornerRadius="10"
+            Padding="8">
+        <Grid RowDefinitions="Auto,*" RowSpacing="8">
+            <DockPanel Grid.Row="0" LastChildFill="False">
+                <TextBlock Text="{Binding Title, ElementName=Root}"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+                <Button x:Name="PART_CopyButton"
+                        DockPanel.Dock="Right"
+                        Content="Copy Selected"
+                        Margin="0,0,8,0" />
+                <Button DockPanel.Dock="Right"
+                        Content="Clear"
+                        Command="{Binding ClearCommand, ElementName=Root}" />
+            </DockPanel>
+
+            <Border Grid.Row="1"
+                    BorderBrush="{DynamicResource rUIBorderSubtleBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Background="{DynamicResource rUIBackgroundBrush}">
+                <ScrollViewer x:Name="PART_ScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                    <ListBox x:Name="PART_ListBox"
+                             ItemsSource="{Binding ItemsSource, ElementName=Root}"
+                             SelectionMode="Multiple"
+                             BorderThickness="0"
+                             Background="Transparent">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="m:SerialTrafficEntry">
+                                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8" Margin="4,2">
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding TimestampText}"
+                                               Foreground="{DynamicResource rUIForegroundSecondaryBrush}"
+                                               FontFamily="Consolas, Menlo, monospace"
+                                               FontSize="12" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding Direction, Converter={StaticResource SerialDirectionToLabelConverter}}"
+                                               Foreground="{Binding Direction, Converter={StaticResource SerialDirectionToBrushConverter}}"
+                                               FontWeight="SemiBold"
+                                               FontFamily="Consolas, Menlo, monospace"
+                                               FontSize="12" />
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding Message}"
+                                               Foreground="{Binding Direction, Converter={StaticResource SerialDirectionToBrushConverter}}"
+                                               TextWrapping="NoWrap"
+                                               FontFamily="Consolas, Menlo, monospace"
+                                               FontSize="12" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.Styles>
+                            <Style Selector="ListBoxItem">
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0" />
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="BorderThickness" Value="0" />
+                            </Style>
+                        </ListBox.Styles>
+                    </ListBox>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

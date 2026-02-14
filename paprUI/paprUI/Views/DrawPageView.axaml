@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:paprUI.ViewModels"
+             xmlns:controls="using:paprUI.Views.Controls"
              xmlns:ruiRibbon="using:rUI.Avalonia.Desktop.Controls.Ribbon"
              xmlns:ruiDock="using:rUI.Avalonia.Desktop.Controls.Docking"
              xmlns:pia="using:PhosphorIconsAvalonia.Markup"
@@ -53,50 +54,61 @@
                                                   IsChecked="{Binding IsCircleToolActive, Mode=OneWay}"
                                                   Command="{Binding SelectToolCommand}"
                                                   CommandParameter="Circle" />
-                    <ruiRibbon:RibbonButton Header="Point"
-                                            IconData="{pia:IconGeometry Icon=dot_outline}"
-                                            Command="{Binding SelectToolCommand}"
-                                            CommandParameter="Point" />
-                    <ruiRibbon:RibbonButton Header="Arc"
-                                            IconData="{pia:IconGeometry Icon=circles_three_plus}"
-                                            Command="{Binding SelectToolCommand}"
-                                            CommandParameter="Arc" />
-                    <ruiRibbon:RibbonButton Header="Arrow"
-                                            IconData="{pia:IconGeometry Icon=line_segment}"
-                                            Command="{Binding SelectToolCommand}"
-                                            CommandParameter="Arrow" />
-                    <ruiRibbon:RibbonButton Header="TextBox"
-                                            IconData="{pia:IconGeometry Icon=rectangle}"
-                                            Command="{Binding SelectToolCommand}"
-                                            CommandParameter="TextBox" />
-                    <ruiRibbon:RibbonButton Header="Multiline"
-                                            IconData="{pia:IconGeometry Icon=text_t}"
-                                            Command="{Binding SelectToolCommand}"
-                                            CommandParameter="MultilineText" />
-                    <ruiRibbon:RibbonButton Header="Icon"
-                                            IconData="{pia:IconGeometry Icon=circle}"
-                                            Command="{Binding SelectToolCommand}"
-                                            CommandParameter="Icon" />
-                    <ruiRibbon:RibbonButton Header="Image"
-                                            IconData="{pia:IconGeometry Icon=image}"
-                                            Command="{Binding SelectToolCommand}"
-                                            CommandParameter="Image" />
-                    <ruiRibbon:RibbonButton Header="Centerline"
-                                            IconData="{pia:IconGeometry Icon=rectangle}"
-                                            Command="{Binding SelectToolCommand}"
-                                            CommandParameter="CenterlineRectangle" />
-                    <ruiRibbon:RibbonButton Header="Referential"
-                                            IconData="{pia:IconGeometry Icon=line_segment}"
-                                            Command="{Binding SelectToolCommand}"
-                                            CommandParameter="Referential" />
-                    <ruiRibbon:RibbonButton Header="Dimension"
-                                            IconData="{pia:IconGeometry Icon=line_segment}"
-                                            Command="{Binding SelectToolCommand}"
-                                            CommandParameter="Dimension" />
-                    <ruiRibbon:RibbonButton Header="Angle Dim"
-                                            IconData="{pia:IconGeometry Icon=circle}"
-                                            Command="{Binding SelectToolCommand}"
-                                            CommandParameter="AngleDimension" />
+                    <ruiRibbon:RibbonToggleButton Header="Point"
+                                                  IconData="{pia:IconGeometry Icon=dot_outline}"
+                                                  IsChecked="{Binding IsPointToolActive, Mode=OneWay}"
+                                                  Command="{Binding SelectToolCommand}"
+                                                  CommandParameter="Point" />
+                    <ruiRibbon:RibbonToggleButton Header="Arc"
+                                                  IconData="{pia:IconGeometry Icon=circles_three_plus}"
+                                                  IsChecked="{Binding IsArcToolActive, Mode=OneWay}"
+                                                  Command="{Binding SelectToolCommand}"
+                                                  CommandParameter="Arc" />
+                    <ruiRibbon:RibbonToggleButton Header="Arrow"
+                                                  IconData="{pia:IconGeometry Icon=line_segment}"
+                                                  IsChecked="{Binding IsArrowToolActive, Mode=OneWay}"
+                                                  Command="{Binding SelectToolCommand}"
+                                                  CommandParameter="Arrow" />
+                    <ruiRibbon:RibbonToggleButton Header="TextBox"
+                                                  IconData="{pia:IconGeometry Icon=rectangle}"
+                                                  IsChecked="{Binding IsTextBoxToolActive, Mode=OneWay}"
+                                                  Command="{Binding SelectToolCommand}"
+                                                  CommandParameter="TextBox" />
+                    <ruiRibbon:RibbonToggleButton Header="Multiline"
+                                                  IconData="{pia:IconGeometry Icon=text_t}"
+                                                  IsChecked="{Binding IsMultilineTextToolActive, Mode=OneWay}"
+                                                  Command="{Binding SelectToolCommand}"
+                                                  CommandParameter="MultilineText" />
+                    <ruiRibbon:RibbonToggleButton Header="Icon"
+                                                  IconData="{pia:IconGeometry Icon=circle}"
+                                                  IsChecked="{Binding IsIconToolActive, Mode=OneWay}"
+                                                  Command="{Binding SelectToolCommand}"
+                                                  CommandParameter="Icon" />
+                    <ruiRibbon:RibbonToggleButton Header="Image"
+                                                  IconData="{pia:IconGeometry Icon=image}"
+                                                  IsChecked="{Binding IsImageToolActive, Mode=OneWay}"
+                                                  Command="{Binding SelectToolCommand}"
+                                                  CommandParameter="Image" />
+                    <ruiRibbon:RibbonToggleButton Header="Centerline"
+                                                  IconData="{pia:IconGeometry Icon=rectangle}"
+                                                  IsChecked="{Binding IsCenterlineRectangleToolActive, Mode=OneWay}"
+                                                  Command="{Binding SelectToolCommand}"
+                                                  CommandParameter="CenterlineRectangle" />
+                    <ruiRibbon:RibbonToggleButton Header="Referential"
+                                                  IconData="{pia:IconGeometry Icon=line_segment}"
+                                                  IsChecked="{Binding IsReferentialToolActive, Mode=OneWay}"
+                                                  Command="{Binding SelectToolCommand}"
+                                                  CommandParameter="Referential" />
+                    <ruiRibbon:RibbonToggleButton Header="Dimension"
+                                                  IconData="{pia:IconGeometry Icon=line_segment}"
+                                                  IsChecked="{Binding IsDimensionToolActive, Mode=OneWay}"
+                                                  Command="{Binding SelectToolCommand}"
+                                                  CommandParameter="Dimension" />
+                    <ruiRibbon:RibbonToggleButton Header="Angle Dim"
+                                                  IconData="{pia:IconGeometry Icon=circle}"
+                                                  IsChecked="{Binding IsAngleDimensionToolActive, Mode=OneWay}"
+                                                  Command="{Binding SelectToolCommand}"
+                                                  CommandParameter="AngleDimension" />
                 </ruiRibbon:RibbonGroup>
 
                 <ruiRibbon:RibbonGroup Header="Device">
@@ -116,6 +128,19 @@
                 BorderThickness="1"
                 Background="{DynamicResource rUISurfaceBrush}">
             <DockPanel LastChildFill="True">
+                <Expander DockPanel.Dock="Bottom"
+                          Header="Serial Console"
+                          IsExpanded="True"
+                          Margin="0"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Stretch">
+                    <controls:SerialConsoleControl Height="200"
+                                                   HorizontalAlignment="Stretch"
+                                                   Margin="-10"
+                                                   ItemsSource="{Binding SerialEntries}"
+                                                   ClearCommand="{Binding ClearSerialConsoleCommand}" />
+                </Expander>
+
                 <Border DockPanel.Dock="Bottom"
                         Padding="10,8"
                         BorderBrush="{DynamicResource rUIBorderSubtleBrush}"

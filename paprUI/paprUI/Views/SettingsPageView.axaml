@@ -1,6 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:paprUI.ViewModels"
+             xmlns:rui="using:rUI.Avalonia.Desktop.Controls"
+             xmlns:pia="using:PhosphorIconsAvalonia.Markup"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
@@ -9,39 +11,73 @@
              x:Class="paprUI.Views.SettingsPageView"
              x:DataType="vm:SettingsPageViewModel">
 
-    <Grid>
-        <Border Margin="24"
-                Padding="20"
-                CornerRadius="10"
-                BorderBrush="{DynamicResource rUIBorderSubtleBrush}"
-                BorderThickness="1"
-                Background="{DynamicResource rUISurfaceBrush}"
-                MaxWidth="760"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Top">
-            <StackPanel Spacing="12">
-                <TextBlock Text="{Binding Title}"
-                           FontSize="22"
-                           FontWeight="SemiBold" />
-                <TextBlock Text="{Binding Description}"
-                           TextWrapping="Wrap"
-                           Foreground="{DynamicResource rUIForegroundSecondaryBrush}" />
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="16" MaxWidth="760">
+            <TextBlock Text="{Binding Title}"
+                       FontSize="24"
+                       FontWeight="SemiBold" />
+            <TextBlock Text="{Binding Description}"
+                       Foreground="{DynamicResource rUIForegroundSecondaryBrush}" />
 
-                <TextBlock Text="Library Path" FontWeight="SemiBold" Margin="0,8,0,0"/>
-                <TextBox Text="{Binding LibraryPath}" Watermark="Path to JSON library" />
+            <TextBlock Text="General"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Margin="0,8,0,0" />
 
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button Content="Save Settings"
-                            HorizontalAlignment="Left"
-                            Command="{Binding SaveSettingsCommand}" />
-                    <Button Content="Toggle Theme"
-                            HorizontalAlignment="Left"
-                            Command="{Binding ToggleThemeCommand}" />
+            <rui:SettingsCardControl Header="Appearance"
+                                     Description="Toggle between light and dark theme."
+                                     IconData="{pia:IconGeometry Icon=palette}"
+                                     Command="{Binding CardClickedCommand}"
+                                     CommandParameter="Appearance" />
+
+            <rui:SettingsCardExpander Header="Language"
+                                      Description="Choose the UI language."
+                                      IconData="{pia:IconGeometry Icon=translate}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="{Binding CurrentLanguageDisplay}"
+                               Foreground="{DynamicResource rUIForegroundSecondaryBrush}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="English"
+                                Command="{Binding SetEnglishCommand}" />
+                        <Button Content="French"
+                                Command="{Binding SetFrenchCommand}" />
+                    </StackPanel>
                 </StackPanel>
+            </rui:SettingsCardExpander>
 
-                <TextBlock Text="{Binding StatusText}"
-                           Foreground="{DynamicResource rUIForegroundSecondaryBrush}" />
-            </StackPanel>
-        </Border>
-    </Grid>
+            <rui:SettingsCardExpander Header="Library"
+                                      Description="Set where JSON canvases are saved."
+                                      IconData="{pia:IconGeometry Icon=folder_open}">
+                <StackPanel Spacing="10">
+                    <TextBox Text="{Binding LibraryPath}" Watermark="Path to JSON library" />
+                    <Button Content="Save Library Path"
+                            Command="{Binding SaveSettingsCommand}"
+                            HorizontalAlignment="Left" />
+                </StackPanel>
+            </rui:SettingsCardExpander>
+
+            <rui:SettingsCardExpander Header="Device Image Matrix"
+                                      Description="Configure image rasterization for ESP32 upload."
+                                      IconData="{pia:IconGeometry Icon=grid_four}">
+                <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Max Width" />
+                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ImageMatrixMaxWidth}" />
+                        <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Max Height" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ImageMatrixMaxHeight}" />
+                        <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Threshold (0-255)" />
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ImageMatrixThreshold}" />
+                        <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="Invert" />
+                        <CheckBox Grid.Row="3" Grid.Column="1" IsChecked="{Binding ImageMatrixInvert}" />
+                    </Grid>
+                    <Button Content="Save Settings"
+                            Command="{Binding SaveSettingsCommand}"
+                            HorizontalAlignment="Left" />
+                </StackPanel>
+            </rui:SettingsCardExpander>
+
+            <TextBlock Text="{Binding StatusText}"
+                       Foreground="{DynamicResource rUIForegroundSecondaryBrush}" />
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>
